@@ -58,8 +58,9 @@ curl -X POST http://localhost:8000/api/multi-tenant/sessions/ \
 | **[INDICE_DOCUMENTACION.md](INDICE_DOCUMENTACION.md)** | 📑 Índice completo de documentación |
 | **[INICIO_RAPIDO.md](INICIO_RAPIDO.md)** | ⚡ Configuración en 3 pasos |
 | **[DOCUMENTACION_COMPLETA.md](DOCUMENTACION_COMPLETA.md)** | 📚 Guía completa del sistema |
-| **[ENDPOINTS_API.md](ENDPOINTS_API.md)** | 📡 Referencia completa de APIs |
+| **[ENDPOINTS_API.md](ENDPOINTS_API.md)** | 📡 Referencia de 48+ endpoints |
 | **[MULTIPLES_CARTONES.md](MULTIPLES_CARTONES.md)** | 🎲 Múltiples cartones por jugador |
+| **[EXTRACCION_BOLAS.md](EXTRACCION_BOLAS.md)** | 🎯 Sistema de extracción de bolas |
 | **[GUIA_SOLUCION_PROBLEMAS.md](GUIA_SOLUCION_PROBLEMAS.md)** | 🔧 Soluciones a errores comunes |
 | **[RESUMEN_PROYECTO.md](RESUMEN_PROYECTO.md)** | 🎯 Vista general del proyecto |
 | **[CHANGELOG.md](CHANGELOG.md)** | 📝 Registro de cambios |

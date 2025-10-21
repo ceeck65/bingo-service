@@ -78,11 +78,26 @@ class BingoGameSerializer(serializers.ModelSerializer):
 
 class DrawnBallSerializer(serializers.ModelSerializer):
     """Serializer para bolas extraídas"""
+    letter = serializers.SerializerMethodField()
+    display_name = serializers.SerializerMethodField()
+    color = serializers.SerializerMethodField()
     
     class Meta:
         model = DrawnBall
-        fields = ['id', 'number', 'drawn_at']
-        read_only_fields = ['id', 'drawn_at']
+        fields = ['id', 'number', 'letter', 'display_name', 'color', 'drawn_at']
+        read_only_fields = ['id', 'letter', 'display_name', 'color', 'drawn_at']
+    
+    def get_letter(self, obj):
+        """Retorna la letra (B-I-N-G-O)"""
+        return obj.get_letter()
+    
+    def get_display_name(self, obj):
+        """Retorna el nombre para mostrar (ej: B-7)"""
+        return obj.get_display_name()
+    
+    def get_color(self, obj):
+        """Retorna el color CSS para visualización"""
+        return obj.get_color()
 
 
 class BingoGameCreateSerializer(serializers.Serializer):

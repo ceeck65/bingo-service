@@ -604,17 +604,29 @@ Respuesta:
   }
 }
 
-# Extraer bola
+# Extraer bola (con evitación automática de duplicados)
 POST /api/multi-tenant/games/draw-ball/
 {
   "game_id": "game-uuid"
 }
 
-Respuesta:
+Respuesta (bola normal):
 {
   "message": "Bola 42 extraída",
   "ball_number": 42,
-  "total_drawn": 15
+  "total_drawn": 15,
+  "remaining_balls": 60,
+  "game_status": "active",
+  "progress_percentage": 20.0
+}
+
+Respuesta (juego completado):
+{
+  "message": "Juego completado - Todas las bolas han sido extraídas",
+  "status": "finished",
+  "total_drawn": 75,
+  "max_balls": 75,
+  "game": {...}
 }
 
 # Ver bolas extraídas
@@ -622,11 +634,29 @@ GET /api/multi-tenant/games/{game-id}/drawn-balls/
 
 Respuesta:
 {
-  "game": {...},
-  "total_drawn": 15,
-  "balls": [5, 12, 23, 34, 42, ...],
-  "details": [
-    {"number": 5, "drawn_at": "2024-01-15T10:05:00Z"},
+  "game": {
+    "id": "game-uuid",
+    "name": "Partida Principal",
+    "game_type": "75",
+    "is_active": true
+  },
+  "total_drawn": 10,
+  "balls": [7, 26, 41, 53, 66, 12, 18, 35, 60, 75],
+  "balls_with_letters": [
+    {
+      "number": 7,
+      "letter": "B",
+      "display_name": "B-7",
+      "color": "#0066CC",
+      "drawn_at": "2024-01-15T10:05:00Z"
+    },
+    {
+      "number": 26,
+      "letter": "I",
+      "display_name": "I-26",
+      "color": "#FF6B35",
+      "drawn_at": "2024-01-15T10:05:15Z"
+    },
     ...
   ]
 }

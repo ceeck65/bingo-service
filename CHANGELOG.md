@@ -19,10 +19,28 @@
 - ✅ Validación de pertenencia a la sesión
 
 #### Endpoints de Partidas Agregados
-- ✅ `POST /games/draw-ball/` - Extraer bola en partida
+- ✅ `POST /games/draw-ball/` - Extraer bola con evitación de duplicados
+  - Salta bolas duplicadas automáticamente
+  - Selecciona bola disponible si hay duplicado
+  - Detecta cuando todas las bolas fueron extraídas
+  - Marca juego como finalizado automáticamente
+  - Retorna progreso y estadísticas
+  - **NUEVO**: Incluye letra (B-I-N-G-O), nombre completo y color CSS
 - ✅ `GET /games/{id}/drawn-balls/` - Ver bolas extraídas
+  - Incluye formato con letras para visualización
 - ✅ `POST /games/check-winner/` - Verificar ganador
 - ✅ `GET /sessions/{id}/game/` - Obtener partida activa de sesión
+
+#### Visualización de Bolas
+- ✅ Método `get_letter()` - Retorna letra (B, I, N, G, O)
+- ✅ Método `get_display_name()` - Retorna nombre completo (ej: "I-26")
+- ✅ Método `get_color()` - Retorna color CSS para cada letra
+- ✅ Colores definidos:
+  - B: #0066CC (Azul)
+  - I: #FF6B35 (Naranja)
+  - N: #4CAF50 (Verde)
+  - G: #9C27B0 (Púrpura)
+  - O: #F44336 (Rojo)
 
 #### Scripts
 - ✅ `demo_multiple_cards.py` - Demo completo de múltiples cartones

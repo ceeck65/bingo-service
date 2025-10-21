@@ -664,7 +664,60 @@ class DrawnBall(models.Model):
         unique_together = ['game', 'number']  # No se puede extraer la misma bola dos veces
     
     def __str__(self):
-        return f"Bola {self.number} - Juego {self.game.id}"
+        return f"Bola {self.get_display_name()} - Juego {self.game.id}"
+    
+    def get_letter(self) -> str:
+        """Obtiene la letra (B-I-N-G-O) según el número para bingo americano"""
+        game_type = self.game.game_type
+        
+        if game_type == '75':
+            # Bingo americano de 75 bolas
+            if 1 <= self.number <= 15:
+                return 'B'
+            elif 16 <= self.number <= 30:
+                return 'I'
+            elif 31 <= self.number <= 45:
+                return 'N'
+            elif 46 <= self.number <= 60:
+                return 'G'
+            elif 61 <= self.number <= 75:
+                return 'O'
+        elif game_type == '85':
+            # Bingo americano extendido de 85 bolas
+            if 1 <= self.number <= 16:
+                return 'B'
+            elif 17 <= self.number <= 32:
+                return 'I'
+            elif 33 <= self.number <= 48:
+                return 'N'
+            elif 49 <= self.number <= 64:
+                return 'G'
+            elif 65 <= self.number <= 80:
+                return 'O'
+        elif game_type == '90':
+            # Bingo europeo - no usa letras
+            return ''
+        
+        return ''
+    
+    def get_display_name(self) -> str:
+        """Retorna el nombre completo para mostrar (ej: B-7, I-26, G-60)"""
+        letter = self.get_letter()
+        if letter:
+            return f"{letter}-{self.number}"
+        return str(self.number)
+    
+    def get_color(self) -> str:
+        """Retorna un color CSS según la letra para visualización"""
+        colors = {
+            'B': '#0066CC',  # Azul
+            'I': '#FF6B35',  # Naranja
+            'N': '#4CAF50',  # Verde
+            'G': '#9C27B0',  # Púrpura
+            'O': '#F44336',  # Rojo
+        }
+        letter = self.get_letter()
+        return colors.get(letter, '#666666')  # Gris por defecto
     
     @classmethod
     def get_drawn_numbers(cls, game_id: str) -> Set[int]:

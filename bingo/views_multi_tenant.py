@@ -661,7 +661,7 @@ def get_session_game(request, session_id):
 
 @api_view(['POST'])
 def draw_ball(request):
-    """Extrae una bola en una partida"""
+    """Extrae una bola en una partida, evitando duplicados automáticamente"""
     game_id = request.data.get('game_id')
     
     if not game_id:
@@ -673,14 +673,64 @@ def draw_ball(request):
         from .models import DrawnBall
         game = BingoGameExtended.objects.get(id=game_id)
         
-        # Extraer bola
-        ball_number = game.draw_ball()
+        # Obtener bolas ya extraídas
+        drawn_balls = DrawnBall.objects.filter(game=game).values_list('number', flat=True)
+        drawn_set = set(drawn_balls)
         
-        # Verificar que no se haya extraído antes
-        if DrawnBall.objects.filter(game=game, number=ball_number).exists():
+        # Determinar el máximo de bolas según el tipo de juego
+        max_balls = {
+            '75': 75,
+            '85': 85,
+            '90': 90
+        }.get(game.game_type, 90)
+        
+        # Verificar si ya se extrajeron todas las bolas
+        if len(drawn_set) >= max_balls:
+            # Marcar partida como finalizada
+            if game.is_active:
+                game.is_active = False
+                game.save()
+            
             return Response({
-                'error': f'La bola {ball_number} ya fue extraída anteriormente'
-            }, status=status.HTTP_400_BAD_REQUEST)
+                'message': 'Juego completado - Todas las bolas han sido extraídas',
+                'status': 'finished',
+                'total_drawn': len(drawn_set),
+                'max_balls': max_balls,
+                'game': BingoGameExtendedSerializer(game).data
+            }, status=status.HTTP_200_OK)
+        
+        # Intentar extraer una bola no repetida (máximo 10 intentos)
+        max_attempts = 10
+        ball_number = None
+        
+        for attempt in range(max_attempts):
+            candidate = game.draw_ball()
+            
+            if candidate not in drawn_set:
+                ball_number = candidate
+                break
+        
+        # Si después de 10 intentos no se encontró, buscar una bola disponible
+        if ball_number is None:
+            available_balls = set(range(1, max_balls + 1)) - drawn_set
+            
+            if not available_balls:
+                # No hay bolas disponibles
+                if game.is_active:
+                    game.is_active = False
+                    game.save()
+                
+                return Response({
+                    'message': 'Juego completado - Todas las bolas han sido extraídas',
+                    'status': 'finished',
+                    'total_drawn': len(drawn_set),
+                    'max_balls': max_balls,
+                    'game': BingoGameExtendedSerializer(game).data
+                }, status=status.HTTP_200_OK)
+            
+            # Seleccionar una bola disponible aleatoriamente
+            import random
+            ball_number = random.choice(list(available_balls))
         
         # Guardar bola extraída
         drawn_ball = DrawnBall.objects.create(
@@ -688,13 +738,32 @@ def draw_ball(request):
             number=ball_number
         )
         
-        # Obtener todas las bolas extraídas
+        # Obtener información de visualización
+        letter = drawn_ball.get_letter()
+        display_name = drawn_ball.get_display_name()
+        color = drawn_ball.get_color()
+        
+        # Obtener estadísticas actualizadas
         total_drawn = game.drawn_balls.count()
+        remaining = max_balls - total_drawn
+        
+        # Verificar si se completó el juego
+        game_status = 'active'
+        if total_drawn >= max_balls:
+            game.is_active = False
+            game.save()
+            game_status = 'finished'
         
         return Response({
-            'message': f'Bola {ball_number} extraída',
+            'message': f'Bola {display_name} extraída',
             'ball_number': ball_number,
+            'letter': letter,
+            'display_name': display_name,
+            'color': color,
             'total_drawn': total_drawn,
+            'remaining_balls': remaining,
+            'game_status': game_status,
+            'progress_percentage': round((total_drawn / max_balls) * 100, 2),
             'game': BingoGameExtendedSerializer(game).data
         }, status=status.HTTP_201_CREATED)
     
@@ -709,6 +778,8 @@ def get_drawn_balls(request, game_id):
     """Obtiene todas las bolas extraídas en una partida"""
     try:
         from .models import DrawnBall
+        from .serializers import DrawnBallSerializer
+        
         game = BingoGameExtended.objects.get(id=game_id)
         
         drawn_balls = DrawnBall.objects.filter(game=game).order_by('drawn_at')
@@ -719,12 +790,16 @@ def get_drawn_balls(request, game_id):
             'game': {
                 'id': game.id,
                 'name': game.name,
-                'game_type': game.game_type
+                'game_type': game.game_type,
+                'is_active': game.is_active
             },
             'total_drawn': drawn_balls.count(),
             'balls': balls_list,
-            'details': [{
+            'balls_with_letters': [{
                 'number': ball.number,
+                'letter': ball.get_letter(),
+                'display_name': ball.get_display_name(),
+                'color': ball.get_color(),
                 'drawn_at': ball.drawn_at
             } for ball in drawn_balls]
         }, status=status.HTTP_200_OK)

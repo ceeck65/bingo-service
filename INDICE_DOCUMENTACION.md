@@ -54,11 +54,22 @@
    - Bugs corregidos
    - Roadmap futuro
 
-7. **[MULTIPLES_CARTONES.md](MULTIPLES_CARTONES.md)** - Múltiples cartones por jugador
+7. **[ENDPOINTS_API.md](ENDPOINTS_API.md)** - Referencia completa de APIs
+   - Todos los endpoints organizados
+   - Ejemplos de uso
+   - Filtros disponibles
+   - Códigos de estado
+
+8. **[MULTIPLES_CARTONES.md](MULTIPLES_CARTONES.md)** - Múltiples cartones por jugador
    - Configuración de límites
    - Selección múltiple
    - APIs específicas
    - Ejemplos de integración
+
+9. **[EXTRACCION_BOLAS.md](EXTRACCION_BOLAS.md)** - Sistema de extracción de bolas
+   - Evitación automática de duplicados
+   - Detección de juego completado
+   - Integración con Laravel/WhatsApp
 
 ---
 
