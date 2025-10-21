@@ -1,0 +1,24 @@
+# Dependencias de desarrollo para el microservicio de bingo
+
+# Dependencias base del proyecto
+-r requirements.txt
+
+# Testing
+pytest==8.0.0
+pytest-django==4.8.0
+pytest-cov==4.0.0
+
+# Desarrollo
+black==23.0.0
+flake8==6.0.0
+isort==5.12.0
+
+# API Testing
+requests==2.32.4
+
+# Debugging
+django-debug-toolbar==4.2.0
+
+# Documentación
+sphinx==7.0.0
+sphinx-rtd-theme==1.3.0

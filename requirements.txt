@@ -1,0 +1,14 @@
+# Microservicio de Bingo - Dependencias del proyecto
+Django==5.2.7
+djangorestframework==3.16.1
+django-cors-headers==4.6.0
+psycopg==3.1.18
+
+# Dependencias del sistema Django
+asgiref==3.10.0
+sqlparse==0.5.3
+
+# Dependencias para desarrollo (opcional)
+# requests==2.32.4  # Para pruebas de API
+# pytest==8.0.0    # Para testing
+# pytest-django==4.8.0  # Para testing Django
