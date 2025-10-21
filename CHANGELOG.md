@@ -35,6 +35,11 @@
 - ✅ Ejemplos de código para Vue.js
 - ✅ Manejo de errores y best practices
 
+#### Herramientas
+- ✅ `create_api_key.py` - Script para crear credenciales sin autenticación
+- ✅ `test_jwt.py` - Test automático del sistema JWT
+- ✅ Solución al problema del "huevo y la gallina"
+
 ---
 
 ## Versión 2.2 - Sistema de Autenticación (2024-10-21)

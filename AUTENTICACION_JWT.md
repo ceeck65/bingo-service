@@ -18,6 +18,44 @@ El sistema utiliza **JWT (JSON Web Tokens)** con autenticación **Bearer Token**
 
 ---
 
+## 🔧 Crear Credenciales Iniciales
+
+Antes de obtener un token JWT, necesitas crear una API Key. Hay dos formas:
+
+### Opción 1: Script de Generación (Recomendado)
+
+```bash
+python create_api_key.py
+```
+
+Este script interactivo te guiará para:
+1. Seleccionar o crear un operador
+2. Configurar nombre y permisos de la API Key
+3. Generar automáticamente key + secret
+4. Opcionalmente guardar las credenciales en un archivo
+
+**Ventajas:**
+- ✅ No requiere autenticación
+- ✅ Muestra el secret una sola vez
+- ✅ Puede guardar credenciales en archivo
+- ✅ Interactivo y fácil de usar
+
+### Opción 2: Admin de Django
+
+```bash
+# 1. Crear superusuario
+python manage.py createsuperuser
+
+# 2. Acceder al admin
+http://localhost:8000/admin/
+
+# 3. Ir a "API Keys" → "Agregar"
+```
+
+⚠️ **Nota:** El admin no muestra el secret después de crearlo, usa el script mejor.
+
+---
+
 ## 🔑 Obtener Token JWT
 
 ### 1. Endpoint

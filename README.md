@@ -6,6 +6,48 @@
 
 ## 🚀 Inicio Rápido
 
+### 1. Instalar Dependencias
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Configurar Base de Datos
+
+```bash
+python manage.py migrate
+```
+
+### 3. Crear Credenciales de API
+
+```bash
+python create_api_key.py
+```
+
+Este script te guiará para crear tu primera API Key y mostrará las credenciales.
+
+### 4. Obtener Token JWT
+
+```bash
+curl -X POST http://localhost:8000/api/token/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "api_key": "tu-api-key",
+    "api_secret": "tu-api-secret"
+  }'
+```
+
+### 5. Usar la API
+
+```bash
+curl http://localhost:8000/api/multi-tenant/sessions/ \
+  -H "Authorization: Bearer tu-token-jwt"
+```
+
+---
+
+## 🚀 Inicio Rápido (Detallado)
+
 ### Instalación
 
 ```bash
@@ -55,6 +97,7 @@ curl -X POST http://localhost:8000/api/multi-tenant/sessions/ \
 
 | Documento | Contenido |
 |-----------|-----------|
+| **[PRIMEROS_PASOS.md](PRIMEROS_PASOS.md)** | 🚀 Guía completa desde cero (EMPIEZA AQUÍ) |
 | **[INDICE_DOCUMENTACION.md](INDICE_DOCUMENTACION.md)** | 📑 Índice completo de documentación |
 | **[INICIO_RAPIDO.md](INICIO_RAPIDO.md)** | ⚡ Configuración en 3 pasos |
 | **[DOCUMENTACION_COMPLETA.md](DOCUMENTACION_COMPLETA.md)** | 📚 Guía completa del sistema |
