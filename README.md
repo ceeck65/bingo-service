@@ -51,23 +51,16 @@ curl -X POST http://localhost:8000/api/multi-tenant/sessions/ \
 
 ---
 
-## 📚 Documentación Completa
+## 📚 Documentación
 
-**[👉 Ver Documentación Completa](DOCUMENTACION_COMPLETA.md)**
-
-La documentación unificada incluye:
-
-- ✅ Instalación y configuración detallada
-- ✅ Tipos de bingo (75, 85, 90 bolas)
-- ✅ Arquitectura multi-tenant
-- ✅ Sistema de pool de cartones
-- ✅ API REST completa
-- ✅ Integración con Laravel/Vue
-- ✅ Integración con WhatsApp
-- ✅ Integración con Telegram
-- ✅ Patrones ganadores
-- ✅ Scripts de prueba
-- ✅ Solución de problemas
+| Documento | Contenido |
+|-----------|-----------|
+| **[INDICE_DOCUMENTACION.md](INDICE_DOCUMENTACION.md)** | 📑 Índice completo de documentación |
+| **[INICIO_RAPIDO.md](INICIO_RAPIDO.md)** | ⚡ Configuración en 3 pasos |
+| **[DOCUMENTACION_COMPLETA.md](DOCUMENTACION_COMPLETA.md)** | 📚 Guía completa del sistema |
+| **[GUIA_SOLUCION_PROBLEMAS.md](GUIA_SOLUCION_PROBLEMAS.md)** | 🔧 Soluciones a errores comunes |
+| **[RESUMEN_PROYECTO.md](RESUMEN_PROYECTO.md)** | 🎯 Vista general del proyecto |
+| **[CHANGELOG.md](CHANGELOG.md)** | 📝 Registro de cambios |
 
 ---
 

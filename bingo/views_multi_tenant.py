@@ -553,26 +553,39 @@ def register_player_by_phone(request):
             'error': 'Operador no encontrado o inactivo'
         }, status=status.HTTP_404_NOT_FOUND)
     
-    # Crear o actualizar jugador
-    player, created = Player.objects.get_or_create(
-        operator=operator,
-        phone=phone,
-        defaults={
-            'username': username,
-            'is_verified': True
-        }
-    )
-    
-    if not created:
-        # Actualizar información si ya existe
-        player.username = username
-        player.is_verified = True
-        player.save()
-    
-    return Response({
-        'message': 'Jugador registrado exitosamente' if created else 'Jugador actualizado exitosamente',
-        'player': PlayerSerializer(player).data
-    }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+    # Buscar jugador existente
+    try:
+        # Intentar encontrar por operador y teléfono
+        player = Player.objects.filter(
+            operator=operator,
+            phone=phone
+        ).first()  # Obtener el primero si hay múltiples
+        
+        if player:
+            # Actualizar información si ya existe
+            player.username = username
+            player.is_verified = True
+            player.save()
+            created = False
+        else:
+            # Crear nuevo jugador
+            player = Player.objects.create(
+                operator=operator,
+                phone=phone,
+                username=username,
+                is_verified=True
+            )
+            created = True
+        
+        return Response({
+            'message': 'Jugador registrado exitosamente' if created else 'Jugador actualizado exitosamente',
+            'player': PlayerSerializer(player).data
+        }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response({
+            'error': f'Error al registrar jugador: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])

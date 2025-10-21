@@ -976,7 +976,26 @@ curl http://localhost:8000/api/multi-tenant/sessions/session-uuid/available-card
 
 ## 🔧 Solución de Problemas
 
+### Error: "MultipleObjectsReturned"
+
+**Problema:**
+```
+MultipleObjectsReturned at /api/multi-tenant/players/register-by-phone/
+get() returned more than one Player
+```
+
+**Solución:**
+```bash
+# Limpiar datos duplicados
+python3 cleanup_duplicates.py
+```
+
 ### Error: "no such table: bingo_operator"
+
+**Problema:**
+```
+OperationalError: no such table: bingo_operator
+```
 
 **Solución:**
 ```bash
@@ -985,11 +1004,28 @@ python3 manage.py migrate
 
 ### Error: PostgreSQL Connection Failed
 
-**Verificar:**
-1. PostgreSQL está corriendo: `sudo systemctl status postgresql`
-2. Base de datos existe: `psql -U postgres -c "\l"`
-3. Crear base de datos si no existe: `createdb -U postgres bingo`
-4. Verificar credenciales en `settings.py`
+**Problema:**
+```
+could not connect to server
+```
+
+**Soluciones:**
+
+1. Verificar PostgreSQL:
+```bash
+sudo systemctl status postgresql
+sudo systemctl start postgresql
+```
+
+2. Crear base de datos:
+```bash
+createdb -U postgres bingo
+```
+
+3. Usar script de configuración:
+```bash
+./setup_postgresql.sh
+```
 
 ### Migraciones Desincronizadas
 
@@ -1005,7 +1041,7 @@ python3 manage.py migrate
 python3 manage.py runserver 8001
 
 # O matar proceso
-lsof -ti:8000 | xargs kill -9
+pkill -f runserver
 ```
 
 ### Instalar psycopg
@@ -1013,6 +1049,19 @@ lsof -ti:8000 | xargs kill -9
 ```bash
 pip install psycopg==3.1.18
 ```
+
+### Limpiar Sistema Completo
+
+```bash
+# Limpiar datos de demos
+python3 cleanup_duplicates.py
+
+# Resetear base de datos
+python3 manage.py flush
+python3 manage.py migrate
+```
+
+**Ver más soluciones en:** `GUIA_SOLUCION_PROBLEMAS.md`
 
 ---
 

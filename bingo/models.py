@@ -939,6 +939,42 @@ class BingoCardExtended(BingoCard):
             return False, "La sesión no permite reutilizar cartones"
         
         return True, "El cartón puede ser reutilizado"
+    
+    def check_card_validity(self):
+        """Valida el cartón usando el método de la clase padre"""
+        # Llamar al método de la instancia padre usando super()
+        # Pero primero necesitamos acceder al objeto BingoCard subyacente
+        # Como BingoCardExtended hereda de BingoCard, los métodos deberían estar disponibles
+        # El problema es que los métodos no son @classmethod sino de instancia
+        
+        # Solución: implementar el método directamente aquí
+        validation_result = {
+            'is_valid': True,
+            'errors': [],
+            'warnings': []
+        }
+        
+        if self.bingo_type == '90':
+            # Validar cartón de 90 bolas
+            if len(self.numbers) != 3:
+                validation_result['errors'].append("El cartón debe tener 3 filas")
+                validation_result['is_valid'] = False
+            
+            if self.numbers and len(self.numbers[0]) != 9:
+                validation_result['errors'].append("El cartón debe tener 9 columnas")
+                validation_result['is_valid'] = False
+        
+        elif self.bingo_type in ['75', '85']:
+            # Validar cartón de 75/85 bolas
+            if len(self.numbers) != 5:
+                validation_result['errors'].append("El cartón debe tener 5 filas")
+                validation_result['is_valid'] = False
+            
+            if self.numbers and len(self.numbers[0]) != 5:
+                validation_result['errors'].append("El cartón debe tener 5 columnas")
+                validation_result['is_valid'] = False
+        
+        return validation_result
 
 
 class BingoGameExtended(BingoGame):
