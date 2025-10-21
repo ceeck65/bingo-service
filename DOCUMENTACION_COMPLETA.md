@@ -316,7 +316,93 @@ En lugar de generar un cartón nuevo cada vez que un jugador se une, el sistema 
 ✅ **Transparencia**: Jugadores ven todos los cartones disponibles  
 ✅ **Eficiencia**: Se generan una sola vez  
 ✅ **Elección**: Jugadores pueden elegir su cartón favorito  
+✅ **Múltiples Cartones**: Jugadores pueden jugar con varios cartones simultáneamente  
 ✅ **Reutilización**: Mismos cartones en múltiples sesiones  
+
+### Jugador con Múltiples Cartones
+
+Un jugador puede seleccionar y jugar con múltiples cartones en la misma sesión:
+
+#### Límites Configurables
+
+Cada operador define el máximo de cartones por jugador:
+
+```python
+operator.max_cards_per_player = 5  # Máximo 5 cartones
+```
+
+#### Selección Múltiple
+
+**Opción 1: Seleccionar uno por uno**
+```bash
+# Seleccionar cartón #1
+POST /api/multi-tenant/cards/select/
+{"session_id": "...", "player_id": "...", "card_id": "card-1"}
+
+# Seleccionar cartón #2
+POST /api/multi-tenant/cards/select/
+{"session_id": "...", "player_id": "...", "card_id": "card-2"}
+```
+
+**Opción 2: Seleccionar múltiples a la vez (Recomendado)**
+```bash
+POST /api/multi-tenant/cards/select-multiple/
+{
+  "session_id": "session-uuid",
+  "player_id": "player-uuid",
+  "card_ids": ["card-1", "card-2", "card-3"]
+}
+```
+
+#### Ver Cartones del Jugador
+
+```bash
+GET /api/multi-tenant/sessions/{session-id}/player/{player-id}/cards/
+
+Respuesta:
+{
+  "summary": {
+    "total": 3,
+    "reserved": 3,
+    "sold": 0
+  },
+  "cards": [
+    {
+      "id": "card-uuid-1",
+      "card_number": 1,
+      "status": "reserved",
+      "numbers": [...]
+    },
+    ...
+  ]
+}
+```
+
+#### Confirmación en Bloque
+
+Confirmar todos los cartones reservados de un jugador:
+
+```bash
+POST /api/multi-tenant/cards/confirm-multiple-purchase/
+{
+  "session_id": "session-uuid",
+  "player_id": "player-uuid"
+}
+
+Respuesta:
+{
+  "message": "3 cartones confirmados exitosamente",
+  "total_cost": 15.00,
+  "total_cards": 3
+}
+```
+
+#### Ventajas de Múltiples Cartones
+
+✅ **Mayor probabilidad de ganar** - Más cartones = más chances  
+✅ **Control de límites** - Operador define máximo  
+✅ **Proceso optimizado** - Selección y compra en bloque  
+✅ **Transparencia** - El jugador ve todos sus cartones  
 
 ---
 
@@ -433,10 +519,32 @@ POST /api/multi-tenant/cards/select/
   "card_id": "card-uuid"
 }
 
-# Confirmar compra
+# ⭐ NUEVO: Seleccionar múltiples cartones a la vez
+POST /api/multi-tenant/cards/select-multiple/
+{
+  "session_id": "session-uuid",
+  "player_id": "player-uuid",
+  "card_ids": [
+    "card-uuid-1",
+    "card-uuid-2",
+    "card-uuid-3"
+  ]
+}
+
+# ⭐ NUEVO: Ver todos los cartones de un jugador
+GET /api/multi-tenant/sessions/{session-id}/player/{player-id}/cards/
+
+# Confirmar compra de un cartón
 POST /api/multi-tenant/cards/confirm-purchase/
 {
   "card_id": "card-uuid"
+}
+
+# ⭐ NUEVO: Confirmar compra de todos los cartones reservados
+POST /api/multi-tenant/cards/confirm-multiple-purchase/
+{
+  "session_id": "session-uuid",
+  "player_id": "player-uuid"
 }
 
 # Liberar cartón

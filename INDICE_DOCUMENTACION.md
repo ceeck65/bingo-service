@@ -54,10 +54,11 @@
    - Bugs corregidos
    - Roadmap futuro
 
-7. **[CAMBIOS_FINALES.md](CAMBIOS_FINALES.md)** - Últimos cambios
-   - PostgreSQL configurado
-   - Documentación unificada
-   - Estado del sistema
+7. **[MULTIPLES_CARTONES.md](MULTIPLES_CARTONES.md)** - Múltiples cartones por jugador
+   - Configuración de límites
+   - Selección múltiple
+   - APIs específicas
+   - Ejemplos de integración
 
 ---
 

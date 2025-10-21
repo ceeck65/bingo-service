@@ -259,6 +259,8 @@ def generate_cards_for_session(request):
 @api_view(['POST'])
 def select_card(request):
     """Permite a un jugador seleccionar un cartón disponible"""
+    from .serializers_multi_tenant import SelectCardSerializer
+    
     serializer = SelectCardSerializer(data=request.data)
     
     if serializer.is_valid():
@@ -282,6 +284,113 @@ def select_card(request):
         }, status=status.HTTP_200_OK)
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def select_multiple_cards(request):
+    """Permite a un jugador seleccionar múltiples cartones a la vez"""
+    from .serializers_multi_tenant import SelectMultipleCardsSerializer
+    
+    serializer = SelectMultipleCardsSerializer(data=request.data)
+    
+    if serializer.is_valid():
+        session_id = serializer.validated_data['session_id']
+        player_id = serializer.validated_data['player_id']
+        card_ids = serializer.validated_data['card_ids']
+        
+        player = Player.objects.get(id=player_id)
+        session = BingoSession.objects.get(id=session_id)
+        
+        # Reservar todos los cartones
+        reserved_cards = []
+        failed_cards = []
+        
+        for card_id in card_ids:
+            try:
+                card = BingoCardExtended.objects.get(id=card_id)
+                success, message = card.reserve_for_player(player)
+                
+                if success:
+                    reserved_cards.append(card)
+                else:
+                    failed_cards.append({
+                        'card_number': card.card_number,
+                        'error': message
+                    })
+            except BingoCardExtended.DoesNotExist:
+                failed_cards.append({
+                    'card_id': str(card_id),
+                    'error': 'Cartón no encontrado'
+                })
+        
+        # Actualizar contador en PlayerSession
+        player_session = PlayerSession.objects.get(session=session, player=player)
+        player_session.cards_count = BingoCardExtended.objects.filter(
+            session=session,
+            player=player,
+            status__in=['reserved', 'sold']
+        ).count()
+        player_session.save()
+        
+        response_data = {
+            'message': f'{len(reserved_cards)} cartones reservados exitosamente',
+            'reserved_cards': BingoCardExtendedSerializer(reserved_cards, many=True).data,
+            'total_cards': player_session.cards_count
+        }
+        
+        if failed_cards:
+            response_data['failed_cards'] = failed_cards
+            response_data['warning'] = f'{len(failed_cards)} cartones no pudieron ser reservados'
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+def get_player_cards(request, session_id, player_id):
+    """Obtiene todos los cartones de un jugador en una sesión"""
+    try:
+        session = BingoSession.objects.get(id=session_id)
+        player = Player.objects.get(id=player_id)
+        
+        # Obtener cartones del jugador
+        cards = BingoCardExtended.objects.filter(
+            session=session,
+            player=player
+        ).order_by('card_number')
+        
+        # Agrupar por estado
+        available = cards.filter(status='available').count()
+        reserved = cards.filter(status='reserved').count()
+        sold = cards.filter(status='sold').count()
+        
+        return Response({
+            'session': {
+                'id': session.id,
+                'name': session.name
+            },
+            'player': {
+                'id': player.id,
+                'username': player.username
+            },
+            'summary': {
+                'total': cards.count(),
+                'available': available,
+                'reserved': reserved,
+                'sold': sold
+            },
+            'cards': BingoCardExtendedSerializer(cards, many=True).data
+        }, status=status.HTTP_200_OK)
+    
+    except BingoSession.DoesNotExist:
+        return Response({
+            'error': 'Sesión no encontrada'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Player.DoesNotExist:
+        return Response({
+            'error': 'Jugador no encontrado'
+        }, status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['POST'])
@@ -313,6 +422,71 @@ def confirm_card_purchase(request):
     except BingoCardExtended.DoesNotExist:
         return Response({
             'error': 'Cartón no encontrado'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+def confirm_multiple_cards_purchase(request):
+    """Confirma la compra de múltiples cartones reservados"""
+    player_id = request.data.get('player_id')
+    session_id = request.data.get('session_id')
+    
+    if not all([player_id, session_id]):
+        return Response({
+            'error': 'player_id y session_id son requeridos'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        player = Player.objects.get(id=player_id)
+        session = BingoSession.objects.get(id=session_id)
+        
+        # Obtener todos los cartones reservados del jugador
+        reserved_cards = BingoCardExtended.objects.filter(
+            session=session,
+            player=player,
+            status='reserved'
+        )
+        
+        if not reserved_cards.exists():
+            return Response({
+                'error': 'No hay cartones reservados para este jugador'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Confirmar todos los cartones
+        confirmed_cards = []
+        failed_cards = []
+        
+        for card in reserved_cards:
+            success, message = card.mark_as_sold()
+            if success:
+                confirmed_cards.append(card)
+            else:
+                failed_cards.append({
+                    'card_number': card.card_number,
+                    'error': message
+                })
+        
+        total_cost = sum(card.purchase_price for card in confirmed_cards)
+        
+        response_data = {
+            'message': f'{len(confirmed_cards)} cartones confirmados exitosamente',
+            'confirmed_cards': BingoCardExtendedSerializer(confirmed_cards, many=True).data,
+            'total_cost': float(total_cost),
+            'total_cards': len(confirmed_cards)
+        }
+        
+        if failed_cards:
+            response_data['failed_cards'] = failed_cards
+        
+        return Response(response_data, status=status.HTTP_200_OK)
+    
+    except Player.DoesNotExist:
+        return Response({
+            'error': 'Jugador no encontrado'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except BingoSession.DoesNotExist:
+        return Response({
+            'error': 'Sesión no encontrada'
         }, status=status.HTTP_404_NOT_FOUND)
 
 

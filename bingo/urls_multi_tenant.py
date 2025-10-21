@@ -34,10 +34,13 @@ urlpatterns = [
     path('cards/<uuid:pk>/', views_multi_tenant.BingoCardExtendedDetailView.as_view(), name='card-detail'),
     path('cards/generate-for-session/', views_multi_tenant.generate_cards_for_session, name='generate-cards-for-session'),
     path('cards/select/', views_multi_tenant.select_card, name='select-card'),
+    path('cards/select-multiple/', views_multi_tenant.select_multiple_cards, name='select-multiple-cards'),
     path('cards/confirm-purchase/', views_multi_tenant.confirm_card_purchase, name='confirm-card-purchase'),
+    path('cards/confirm-multiple-purchase/', views_multi_tenant.confirm_multiple_cards_purchase, name='confirm-multiple-purchase'),
     path('cards/release/', views_multi_tenant.release_card, name='release-card'),
     path('cards/reuse/', views_multi_tenant.reuse_cards_in_session, name='reuse-cards'),
     path('sessions/<uuid:session_id>/available-cards/', views_multi_tenant.get_available_cards, name='available-cards'),
+    path('sessions/<uuid:session_id>/player/<uuid:player_id>/cards/', views_multi_tenant.get_player_cards, name='player-cards'),
     
     # === PARTIDAS EXTENDIDAS ===
     path('games/', views_multi_tenant.BingoGameExtendedListView.as_view(), name='game-list'),

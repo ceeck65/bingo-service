@@ -1,5 +1,29 @@
 # 📝 Registro de Cambios (Changelog)
 
+## Versión 2.1 - Múltiples Cartones por Jugador (2024-10-21)
+
+### 🎮 Nuevas Funcionalidades
+
+#### Múltiples Cartones por Jugador
+- ✅ Jugador puede seleccionar múltiples cartones en una sesión
+- ✅ Endpoint para selección múltiple: `/cards/select-multiple/`
+- ✅ Endpoint para ver cartones del jugador: `/sessions/{id}/player/{id}/cards/`
+- ✅ Confirmación en bloque: `/cards/confirm-multiple-purchase/`
+- ✅ Validación automática de límites por operador
+- ✅ Contador de cartones en `PlayerSession`
+
+#### Validaciones
+- ✅ Límite de cartones por jugador (configurable en Operator)
+- ✅ Verificación de cartones disponibles
+- ✅ Prevención de duplicados
+- ✅ Validación de pertenencia a la sesión
+
+#### Scripts
+- ✅ `demo_multiple_cards.py` - Demo completo de múltiples cartones
+- ✅ `cleanup_duplicates.py` - Limpiar datos duplicados
+
+---
+
 ## Versión 2.0 - Sistema Multi-Tenant con PostgreSQL (2024-10-21)
 
 ### 🎉 Características Principales Agregadas

@@ -310,6 +310,74 @@ class SelectCardSerializer(serializers.Serializer):
         return data
 
 
+class SelectMultipleCardsSerializer(serializers.Serializer):
+    """Serializer para que un jugador seleccione múltiples cartones"""
+    session_id = serializers.UUIDField()
+    player_id = serializers.UUIDField()
+    card_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        min_length=1,
+        max_length=10,
+        help_text="Lista de IDs de cartones a seleccionar"
+    )
+    
+    def validate(self, data):
+        """Validaciones para seleccionar múltiples cartones"""
+        session = BingoSession.objects.get(id=data['session_id'])
+        player = Player.objects.get(id=data['player_id'])
+        
+        # Verificar que el jugador pertenezca al mismo operador
+        if player.operator != session.operator:
+            raise serializers.ValidationError(
+                "El jugador no pertenece al operador de esta sesión"
+            )
+        
+        # Verificar que el jugador esté inscrito en la sesión
+        if not PlayerSession.objects.filter(
+            session=session, player=player, is_active=True
+        ).exists():
+            raise serializers.ValidationError(
+                "El jugador no está inscrito en esta sesión"
+            )
+        
+        # Verificar límite de cartones por jugador
+        current_cards = BingoCardExtended.objects.filter(
+            session=session,
+            player=player,
+            status__in=['reserved', 'sold']
+        ).count()
+        
+        total_requested = current_cards + len(data['card_ids'])
+        max_allowed = session.operator.max_cards_per_player
+        
+        if total_requested > max_allowed:
+            raise serializers.ValidationError(
+                f"El jugador puede tener máximo {max_allowed} cartones. "
+                f"Ya tiene {current_cards} y está intentando agregar {len(data['card_ids'])}"
+            )
+        
+        # Verificar que todos los cartones existan, pertenezcan a la sesión y estén disponibles
+        cards = BingoCardExtended.objects.filter(
+            id__in=data['card_ids'],
+            session=session
+        )
+        
+        if cards.count() != len(data['card_ids']):
+            raise serializers.ValidationError(
+                "Algunos cartones no existen o no pertenecen a esta sesión"
+            )
+        
+        # Verificar que todos estén disponibles
+        unavailable = cards.exclude(status='available')
+        if unavailable.exists():
+            unavailable_numbers = [c.card_number for c in unavailable]
+            raise serializers.ValidationError(
+                f"Los siguientes cartones no están disponibles: {unavailable_numbers}"
+            )
+        
+        return data
+
+
 class ReuseCardsSerializer(serializers.Serializer):
     """Serializer para reutilizar cartones en una nueva sesión"""
     new_session_id = serializers.UUIDField()
