@@ -4,6 +4,8 @@ import random
 from typing import List, Dict, Set
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
+import secrets
+import hashlib
 
 
 class BingoCard(models.Model):
@@ -1045,3 +1047,75 @@ class BingoGameExtended(BingoGame):
     
     def __str__(self):
         return f"Partida {self.game_type} - {self.operator.name if self.operator else 'Sin operador'}"
+
+
+# === SISTEMA DE AUTENTICACIÓN ===
+
+class APIKey(models.Model):
+    """Modelo para API Keys de autenticación"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    operator = models.ForeignKey(Operator, on_delete=models.CASCADE, related_name='api_keys')
+    
+    # Credenciales
+    name = models.CharField(max_length=100, help_text="Nombre descriptivo del API Key")
+    key = models.CharField(max_length=64, unique=True, help_text="API Key pública")
+    secret_hash = models.CharField(max_length=128, help_text="Hash del secret")
+    
+    # Permisos
+    PERMISSION_CHOICES = [
+        ('read', 'Solo lectura'),
+        ('write', 'Lectura y escritura'),
+        ('admin', 'Administrador'),
+    ]
+    permission_level = models.CharField(max_length=20, choices=PERMISSION_CHOICES, default='write')
+    
+    # Configuraciones
+    is_active = models.BooleanField(default=True)
+    allowed_ips = models.JSONField(default=list, blank=True, help_text="IPs permitidas (vacío = todas)")
+    rate_limit = models.IntegerField(default=100, help_text="Requests por minuto")
+    
+    # Metadatos
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True, help_text="Fecha de expiración")
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.name} ({self.operator.name}) - {self.key[:8]}..."
+    
+    @classmethod
+    def generate_credentials(cls):
+        """Genera un par de key y secret"""
+        key = secrets.token_urlsafe(32)  # API Key pública
+        secret = secrets.token_urlsafe(48)  # Secret privado
+        return key, secret
+    
+    @classmethod
+    def hash_secret(cls, secret: str) -> str:
+        """Crea hash del secret para almacenar"""
+        return hashlib.sha256(secret.encode()).hexdigest()
+    
+    def verify_secret(self, secret: str) -> bool:
+        """Verifica que el secret coincida con el hash almacenado"""
+        secret_hash = self.hash_secret(secret)
+        return secrets.compare_digest(self.secret_hash, secret_hash)
+    
+    def update_last_used(self):
+        """Actualiza la última vez que se usó la API Key"""
+        from django.utils import timezone
+        self.last_used = timezone.now()
+        self.save(update_fields=['last_used'])
+    
+    def is_valid(self) -> tuple:
+        """Verifica si la API Key es válida"""
+        if not self.is_active:
+            return False, "API Key inactiva"
+        
+        if self.expires_at:
+            from django.utils import timezone
+            if timezone.now() > self.expires_at:
+                return False, "API Key expirada"
+        
+        return True, "API Key válida"

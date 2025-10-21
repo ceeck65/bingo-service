@@ -1,6 +1,7 @@
 # Microservicio de Bingo - Dependencias del proyecto
 Django==5.2.7
 djangorestframework==3.16.1
+djangorestframework-simplejwt==5.3.1
 django-cors-headers==4.6.0
 psycopg==3.1.18
 

@@ -61,6 +61,8 @@ curl -X POST http://localhost:8000/api/multi-tenant/sessions/ \
 | **[ENDPOINTS_API.md](ENDPOINTS_API.md)** | 📡 Referencia de 48+ endpoints |
 | **[MULTIPLES_CARTONES.md](MULTIPLES_CARTONES.md)** | 🎲 Múltiples cartones por jugador |
 | **[EXTRACCION_BOLAS.md](EXTRACCION_BOLAS.md)** | 🎯 Sistema de extracción de bolas |
+| **[AUTENTICACION_JWT.md](AUTENTICACION_JWT.md)** | 🔐 Sistema de autenticación JWT Bearer Token |
+| **[RESUMEN_JWT.md](RESUMEN_JWT.md)** | ⚡ Resumen rápido de JWT |
 | **[GUIA_SOLUCION_PROBLEMAS.md](GUIA_SOLUCION_PROBLEMAS.md)** | 🔧 Soluciones a errores comunes |
 | **[RESUMEN_PROYECTO.md](RESUMEN_PROYECTO.md)** | 🎯 Vista general del proyecto |
 | **[CHANGELOG.md](CHANGELOG.md)** | 📝 Registro de cambios |

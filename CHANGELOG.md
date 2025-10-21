@@ -1,5 +1,75 @@
 # 📝 Registro de Cambios (Changelog)
 
+## Versión 2.3 - Autenticación JWT Bearer Token (2024-10-21)
+
+### 🔐 Migración a JWT
+
+#### Sistema JWT Implementado
+- ✅ Autenticación con **Bearer Token** estándar
+- ✅ Todos los endpoints protegidos por defecto
+- ✅ Access Token (24h) + Refresh Token (7 días)
+- ✅ Obtención de token con API Key + Secret
+- ✅ Backend personalizado compatible con Operator
+- ✅ Mensajes de error claros (401)
+
+#### Endpoints JWT
+- ✅ `POST /api/token/` - Obtener access + refresh token
+- ✅ `POST /api/token/refresh/` - Renovar access token
+
+#### Seguridad Mejorada
+- ✅ Tokens firmados con HS256
+- ✅ Expiración automática
+- ✅ Renovación con refresh token
+- ✅ Validación en cada request
+- ✅ Claims personalizados (operator, permission_level)
+
+#### Integraciones
+- ✅ Ejemplos completos para Laravel/PHP
+- ✅ Ejemplos completos para Vue.js
+- ✅ Interceptores para refresh automático
+- ✅ Manejo de cache de tokens
+
+#### Documentación
+- ✅ `AUTENTICACION_JWT.md` - Guía completa
+- ✅ Ejemplos de código para Laravel
+- ✅ Ejemplos de código para Vue.js
+- ✅ Manejo de errores y best practices
+
+---
+
+## Versión 2.2 - Sistema de Autenticación (2024-10-21)
+
+### 🔐 Sistema de Autenticación con API Keys
+
+#### Modelo y Autenticación
+- ✅ Modelo `APIKey` para gestión de credenciales
+- ✅ Generación automática de Key + Secret
+- ✅ Hash seguro con SHA-256
+- ✅ Verificación timing-safe con `secrets.compare_digest()`
+- ✅ Middleware `APIKeyAuthentication`
+- ✅ Permisos personalizados (read/write/admin)
+
+#### Características de Seguridad
+- ✅ Secret nunca se almacena en texto plano
+- ✅ Control por IP (opcional)
+- ✅ Rate limiting configurado
+- ✅ Expiración de keys
+- ✅ Revocación de keys comprometidas
+- ✅ Tracking de último uso
+
+#### Endpoints de Autenticación
+- ✅ `POST /api/auth/api-keys/create/` - Crear API Key
+- ✅ `GET /api/auth/api-keys/` - Listar API Keys
+- ✅ `POST /api/auth/api-keys/{id}/revoke/` - Revocar API Key
+- ✅ `POST /api/auth/test/` - Probar autenticación
+
+#### Documentación
+- ✅ `AUTENTICACION.md` - Guía completa de autenticación
+- ✅ Ejemplos de integración con Laravel/Vue
+- ✅ Ejemplos de uso con curl
+
+---
+
 ## Versión 2.1 - Múltiples Cartones por Jugador (2024-10-21)
 
 ### 🎮 Nuevas Funcionalidades

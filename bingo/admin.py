@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     BingoCard, BingoGame, DrawnBall,
     Operator, Player, BingoSession, PlayerSession,
-    BingoCardExtended, BingoGameExtended
+    BingoCardExtended, BingoGameExtended, APIKey
 )
 
 
@@ -186,3 +186,35 @@ class BingoGameExtendedAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         })
     )
+
+
+@admin.register(APIKey)
+class APIKeyAdmin(admin.ModelAdmin):
+    list_display = ['name', 'operator', 'key_preview', 'permission_level', 'is_active', 'last_used', 'created_at']
+    list_filter = ['operator', 'permission_level', 'is_active', 'created_at']
+    search_fields = ['name', 'key']
+    readonly_fields = ['id', 'key', 'secret_hash', 'created_at', 'last_used']
+    fieldsets = (
+        ('Información Básica', {
+            'fields': ('operator', 'name')
+        }),
+        ('Credenciales', {
+            'fields': ('key', 'secret_hash'),
+            'classes': ('collapse',)
+        }),
+        ('Permisos', {
+            'fields': ('permission_level', 'is_active')
+        }),
+        ('Configuración', {
+            'fields': ('allowed_ips', 'rate_limit', 'expires_at')
+        }),
+        ('Metadatos', {
+            'fields': ('id', 'created_at', 'last_used'),
+            'classes': ('collapse',)
+        })
+    )
+    
+    def key_preview(self, obj):
+        """Muestra preview de la key"""
+        return f"{obj.key[:8]}..." if obj.key else ""
+    key_preview.short_description = 'API Key'

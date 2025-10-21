@@ -47,6 +47,7 @@ urlpatterns = [
     path('games/<uuid:pk>/', views_multi_tenant.BingoGameExtendedDetailView.as_view(), name='game-detail'),
     path('sessions/<uuid:session_id>/game/', views_multi_tenant.get_session_game, name='session-game'),
     path('games/draw-ball/', views_multi_tenant.draw_ball, name='draw-ball'),
+    path('games/<uuid:game_id>/draw-ball/', views_multi_tenant.draw_ball_by_id, name='draw-ball-by-id'),
     path('games/<uuid:game_id>/drawn-balls/', views_multi_tenant.get_drawn_balls, name='drawn-balls'),
     path('games/check-winner/', views_multi_tenant.check_winner, name='check-winner'),
 ]

@@ -16,9 +16,17 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from bingo import jwt_auth
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
+    # Autenticación JWT
+    path('api/token/', jwt_auth.obtain_token, name='token_obtain'),
+    path('api/token/refresh/', jwt_auth.refresh_token, name='token_refresh'),
+    
+    # APIs
     path('api/bingo/', include('bingo.urls')),
     path('api/multi-tenant/', include('bingo.urls_multi_tenant')),
+    path('api/auth/', include('bingo.urls_auth')),
 ]

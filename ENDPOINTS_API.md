@@ -174,7 +174,8 @@ POST /api/multi-tenant/cards/confirm-multiple-purchase/
 | GET | `/games/?session={id}` | Filtrar por sesión |
 | POST | `/games/` | Crear partida |
 | GET | `/games/{id}/` | Obtener partida específica |
-| POST | `/games/draw-ball/` | Extraer una bola |
+| POST | `/games/draw-ball/` | Extraer una bola (body: game_id) |
+| POST | `/games/{id}/draw-ball/` | Extraer una bola (game_id en URL) |
 | GET | `/games/{id}/drawn-balls/` | Ver bolas extraídas |
 | POST | `/games/check-winner/` | Verificar si un cartón es ganador |
 
@@ -196,11 +197,17 @@ GET /api/multi-tenant/games/?session={session-id}
 # Obtener partida activa de sesión
 GET /api/multi-tenant/sessions/{session-id}/game/
 
-# Extraer bola
+# Extraer bola (Opción 1: game_id en body)
 POST /api/multi-tenant/games/draw-ball/
 {
   "game_id": "game-uuid"
 }
+
+# Extraer bola (Opción 2: game_id en URL - Recomendado)
+POST /api/multi-tenant/games/{game-uuid}/draw-ball/
+
+# También acepta GET para compatibilidad
+GET /api/multi-tenant/games/{game-uuid}/draw-ball/
 
 # Ver bolas extraídas
 GET /api/multi-tenant/games/{game-id}/drawn-balls/

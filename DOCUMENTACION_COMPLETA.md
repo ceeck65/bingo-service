@@ -610,6 +610,10 @@ POST /api/multi-tenant/games/draw-ball/
   "game_id": "game-uuid"
 }
 
+# O usar game_id en la URL (más REST-ful)
+POST /api/multi-tenant/games/{game-uuid}/draw-ball/
+GET /api/multi-tenant/games/{game-uuid}/draw-ball/
+
 Respuesta (bola normal):
 {
   "message": "Bola 42 extraída",
