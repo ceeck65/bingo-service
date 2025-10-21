@@ -614,6 +614,171 @@ class BingoGameExtendedDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = BingoGameExtendedSerializer
 
 
+@api_view(['GET'])
+def get_session_game(request, session_id):
+    """Obtiene la partida activa de una sesión"""
+    try:
+        session = BingoSession.objects.get(id=session_id)
+        
+        # Buscar partida activa de la sesión
+        game = BingoGameExtended.objects.filter(
+            session=session,
+            is_active=True
+        ).first()
+        
+        if not game:
+            return Response({
+                'error': 'No hay partida activa para esta sesión',
+                'session': {
+                    'id': session.id,
+                    'name': session.name
+                }
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Obtener estadísticas
+        from .models import DrawnBall
+        drawn_balls = DrawnBall.objects.filter(game=game)
+        
+        return Response({
+            'game': BingoGameExtendedSerializer(game).data,
+            'session': {
+                'id': session.id,
+                'name': session.name,
+                'status': session.status
+            },
+            'stats': {
+                'balls_drawn': drawn_balls.count(),
+                'total_cards': session.cards.filter(status='sold').count(),
+                'players': session.player_sessions.filter(is_active=True).count()
+            }
+        }, status=status.HTTP_200_OK)
+    
+    except BingoSession.DoesNotExist:
+        return Response({
+            'error': 'Sesión no encontrada'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+def draw_ball(request):
+    """Extrae una bola en una partida"""
+    game_id = request.data.get('game_id')
+    
+    if not game_id:
+        return Response({
+            'error': 'game_id es requerido'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        from .models import DrawnBall
+        game = BingoGameExtended.objects.get(id=game_id)
+        
+        # Extraer bola
+        ball_number = game.draw_ball()
+        
+        # Verificar que no se haya extraído antes
+        if DrawnBall.objects.filter(game=game, number=ball_number).exists():
+            return Response({
+                'error': f'La bola {ball_number} ya fue extraída anteriormente'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Guardar bola extraída
+        drawn_ball = DrawnBall.objects.create(
+            game=game,
+            number=ball_number
+        )
+        
+        # Obtener todas las bolas extraídas
+        total_drawn = game.drawn_balls.count()
+        
+        return Response({
+            'message': f'Bola {ball_number} extraída',
+            'ball_number': ball_number,
+            'total_drawn': total_drawn,
+            'game': BingoGameExtendedSerializer(game).data
+        }, status=status.HTTP_201_CREATED)
+    
+    except BingoGameExtended.DoesNotExist:
+        return Response({
+            'error': 'Partida no encontrada'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+def get_drawn_balls(request, game_id):
+    """Obtiene todas las bolas extraídas en una partida"""
+    try:
+        from .models import DrawnBall
+        game = BingoGameExtended.objects.get(id=game_id)
+        
+        drawn_balls = DrawnBall.objects.filter(game=game).order_by('drawn_at')
+        
+        balls_list = [ball.number for ball in drawn_balls]
+        
+        return Response({
+            'game': {
+                'id': game.id,
+                'name': game.name,
+                'game_type': game.game_type
+            },
+            'total_drawn': drawn_balls.count(),
+            'balls': balls_list,
+            'details': [{
+                'number': ball.number,
+                'drawn_at': ball.drawn_at
+            } for ball in drawn_balls]
+        }, status=status.HTTP_200_OK)
+    
+    except BingoGameExtended.DoesNotExist:
+        return Response({
+            'error': 'Partida no encontrada'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+def check_winner(request):
+    """Verifica si un cartón es ganador en una partida"""
+    game_id = request.data.get('game_id')
+    card_id = request.data.get('card_id')
+    
+    if not all([game_id, card_id]):
+        return Response({
+            'error': 'game_id y card_id son requeridos'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        from .models import DrawnBall
+        game = BingoGameExtended.objects.get(id=game_id)
+        card = BingoCardExtended.objects.get(id=card_id)
+        
+        # Obtener bolas extraídas
+        drawn_numbers = set(DrawnBall.get_drawn_numbers(game_id))
+        
+        # Verificar ganador
+        winner_result = card.check_winner(drawn_numbers)
+        
+        # Si es ganador, actualizar el cartón
+        if winner_result['is_winner'] and not card.is_winner:
+            card.is_winner = True
+            card.winning_patterns = winner_result['winning_patterns']
+            card.save()
+        
+        return Response({
+            'card': BingoCardExtendedSerializer(card).data,
+            'winner_result': winner_result,
+            'drawn_balls_count': len(drawn_numbers)
+        }, status=status.HTTP_200_OK)
+    
+    except BingoGameExtended.DoesNotExist:
+        return Response({
+            'error': 'Partida no encontrada'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except BingoCardExtended.DoesNotExist:
+        return Response({
+            'error': 'Cartón no encontrado'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+
 # === VISTAS PARA ESTADÍSTICAS ===
 
 @api_view(['GET'])

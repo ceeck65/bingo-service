@@ -18,9 +18,18 @@
 - ✅ Prevención de duplicados
 - ✅ Validación de pertenencia a la sesión
 
+#### Endpoints de Partidas Agregados
+- ✅ `POST /games/draw-ball/` - Extraer bola en partida
+- ✅ `GET /games/{id}/drawn-balls/` - Ver bolas extraídas
+- ✅ `POST /games/check-winner/` - Verificar ganador
+- ✅ `GET /sessions/{id}/game/` - Obtener partida activa de sesión
+
 #### Scripts
 - ✅ `demo_multiple_cards.py` - Demo completo de múltiples cartones
 - ✅ `cleanup_duplicates.py` - Limpiar datos duplicados
+
+#### Documentación Adicional
+- ✅ `ENDPOINTS_API.md` - Referencia completa de todos los endpoints
 
 ---
 

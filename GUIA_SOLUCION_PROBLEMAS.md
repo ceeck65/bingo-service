@@ -1,5 +1,24 @@
 # 🔧 Guía de Solución de Problemas
 
+## ❌ Error: "Page not found (404) - draw-ball endpoint"
+
+### Problema
+```
+Page not found (404)
+POST /api/multi-tenant/games/draw-ball/
+```
+
+### Causa
+Endpoint no agregado a las URLs multi-tenant.
+
+### Solución
+✅ **Ya corregido** - Endpoints agregados:
+- `POST /api/multi-tenant/games/draw-ball/`
+- `GET /api/multi-tenant/games/{id}/drawn-balls/`
+- `POST /api/multi-tenant/games/check-winner/`
+
+---
+
 ## ❌ Error: "AttributeError: 'BingoCardExtended' object has no attribute 'check_card_validity'"
 
 ### Problema

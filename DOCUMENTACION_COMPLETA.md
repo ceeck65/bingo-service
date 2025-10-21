@@ -564,13 +564,44 @@ POST /api/multi-tenant/cards/reuse/
 ### Partidas
 
 ```bash
+# Listar partidas
+GET /api/multi-tenant/games/?operator={operator-id}
+GET /api/multi-tenant/games/?session={session-id}
+
 # Crear partida
 POST /api/multi-tenant/games/
 {
   "operator": "operator-uuid",
   "session": "session-uuid",
   "game_type": "75",
-  "name": "Partida Principal"
+  "name": "Partida Principal",
+  "auto_draw": false
+}
+
+# Obtener partida específica
+GET /api/multi-tenant/games/{game-id}/
+
+# Obtener partida activa de una sesión
+GET /api/multi-tenant/sessions/{session-id}/game/
+
+Respuesta:
+{
+  "game": {
+    "id": "game-uuid",
+    "name": "Partida Principal",
+    "game_type": "75",
+    "is_active": true
+  },
+  "session": {
+    "id": "session-uuid",
+    "name": "Sesión Matutina",
+    "status": "active"
+  },
+  "stats": {
+    "balls_drawn": 15,
+    "total_cards": 45,
+    "players": 12
+  }
 }
 
 # Extraer bola
@@ -579,14 +610,43 @@ POST /api/multi-tenant/games/draw-ball/
   "game_id": "game-uuid"
 }
 
+Respuesta:
+{
+  "message": "Bola 42 extraída",
+  "ball_number": 42,
+  "total_drawn": 15
+}
+
 # Ver bolas extraídas
 GET /api/multi-tenant/games/{game-id}/drawn-balls/
 
-# Verificar ganador
+Respuesta:
+{
+  "game": {...},
+  "total_drawn": 15,
+  "balls": [5, 12, 23, 34, 42, ...],
+  "details": [
+    {"number": 5, "drawn_at": "2024-01-15T10:05:00Z"},
+    ...
+  ]
+}
+
+# Verificar ganador (un cartón)
 POST /api/multi-tenant/games/check-winner/
 {
   "card_id": "card-uuid",
   "game_id": "game-uuid"
+}
+
+Respuesta:
+{
+  "card": {...},
+  "winner_result": {
+    "is_winner": true,
+    "winning_patterns": ["Línea horizontal (fila 1)"],
+    "marked_numbers": [7, 26, 41, 53, 66]
+  },
+  "drawn_balls_count": 25
 }
 ```
 
