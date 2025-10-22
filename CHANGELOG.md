@@ -1,5 +1,46 @@
 # 📝 Registro de Cambios (Changelog)
 
+## Versión 2.4 - Sistema de Patrones de Victoria (2024-10-22)
+
+### 🎯 Sistema de Patrones Configurables
+
+#### Patrones Implementados
+- ✅ **4 Patrones Clásicos**: Línea horizontal, vertical, diagonal, cartón lleno
+- ✅ **5 Patrones Especiales**: Cuatro esquinas, X/Cruz, Letra L, Letra T, Jackpot rápido
+- ✅ **Sistema de Jackpot Progresivo**: Premios especiales por velocidad
+- ✅ **Multiplicadores de Premio**: Configurables por patrón
+- ✅ **Compatibilidad por Tipo**: Patrones específicos para 75/85/90 bolas
+
+#### Funcionalidades
+- ✅ **Configuración por Sesión**: Operadores eligen patrones para cada partida
+- ✅ **Verificación Automática**: Chequeo de ganadores después de cada bola
+- ✅ **Múltiples Ganadores**: Soporte para varios patrones simultáneos
+- ✅ **Patrones Personalizados**: Operadores pueden crear sus propios patrones
+
+#### Endpoints de Patrones
+- ✅ `GET /api/patterns/` - Listar todos los patrones
+- ✅ `GET /api/patterns/available/{bingo_type}/` - Patrones por tipo
+- ✅ `POST /api/patterns/sessions/{id}/configure/` - Configurar sesión
+- ✅ `GET /api/patterns/sessions/{id}/patterns/` - Ver patrones de sesión
+- ✅ `POST /api/patterns/check-winner/` - Verificar ganador
+- ✅ `POST /api/patterns/games/{id}/check-all-cards/` - Verificar todos los cartones
+
+#### Modelo y Lógica
+- ✅ Modelo `WinningPattern` con validación de patrones
+- ✅ 9 métodos de verificación implementados
+- ✅ Integración con `BingoSession`
+- ✅ Admin de Django configurado
+
+#### Herramientas
+- ✅ `initialize_patterns.py` - Script de inicialización
+- ✅ `demo_patterns.py` - Demo completo del sistema
+
+#### Documentación
+- ✅ `PATRONES_VICTORIA.md` - Documentación completa
+- ✅ Ejemplos de integración Laravel/Vue/WhatsApp
+
+---
+
 ## Versión 2.3 - Autenticación JWT Bearer Token (2024-10-21)
 
 ### 🔐 Migración a JWT

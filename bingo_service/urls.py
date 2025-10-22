@@ -29,4 +29,5 @@ urlpatterns = [
     path('api/bingo/', include('bingo.urls')),
     path('api/multi-tenant/', include('bingo.urls_multi_tenant')),
     path('api/auth/', include('bingo.urls_auth')),
+    path('api/patterns/', include('bingo.urls_patterns')),
 ]

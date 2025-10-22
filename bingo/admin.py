@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     BingoCard, BingoGame, DrawnBall,
     Operator, Player, BingoSession, PlayerSession,
-    BingoCardExtended, BingoGameExtended, APIKey
+    BingoCardExtended, BingoGameExtended, APIKey, WinningPattern
 )
 
 
@@ -218,3 +218,36 @@ class APIKeyAdmin(admin.ModelAdmin):
         """Muestra preview de la key"""
         return f"{obj.key[:8]}..." if obj.key else ""
     key_preview.short_description = 'API Key'
+
+
+@admin.register(WinningPattern)
+class WinningPatternAdmin(admin.ModelAdmin):
+    list_display = ['name', 'code', 'category', 'compatible_with', 'prize_multiplier', 'has_jackpot', 'is_active', 'is_system']
+    list_filter = ['category', 'compatible_with', 'is_active', 'is_system', 'has_jackpot']
+    search_fields = ['name', 'code', 'description']
+    readonly_fields = ['created_at', 'updated_at']
+    fieldsets = (
+        ('Información Básica', {
+            'fields': ('name', 'code', 'description', 'category')
+        }),
+        ('Configuración', {
+            'fields': ('compatible_with', 'pattern_type', 'pattern_data')
+        }),
+        ('Premio', {
+            'fields': ('prize_multiplier', 'has_jackpot', 'jackpot_max_balls')
+        }),
+        ('Estado', {
+            'fields': ('is_active', 'is_system', 'operator')
+        }),
+        ('Metadatos', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )
+    
+    def get_readonly_fields(self, request, obj=None):
+        """Los patrones del sistema no se pueden modificar"""
+        readonly = list(super().get_readonly_fields(request, obj))
+        if obj and obj.is_system:
+            readonly.extend(['code', 'pattern_type', 'is_system'])
+        return readonly

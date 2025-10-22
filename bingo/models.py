@@ -852,8 +852,19 @@ class BingoSession(models.Model):
         return f"{self.name} - {self.operator.name} ({self.bingo_type} bolas)"
     
     def get_winning_patterns(self):
-        """Retorna los patrones ganadores configurados"""
-        return self.winning_patterns or ['line', 'diagonal', 'corners', 'full_card']
+        """Retorna los patrones ganadores configurados como objetos WinningPattern"""
+        if not self.winning_patterns:
+            # Patrones por defecto
+            return WinningPattern.objects.filter(
+                code__in=['horizontal_line', 'vertical_line', 'full_card'],
+                is_active=True
+            )
+        
+        # Retornar patrones configurados
+        return WinningPattern.objects.filter(
+            code__in=self.winning_patterns,
+            is_active=True
+        )
     
     def generate_cards_for_session(self):
         """Genera los cartones para esta sesión"""
@@ -1119,3 +1130,310 @@ class APIKey(models.Model):
                 return False, "API Key expirada"
         
         return True, "API Key válida"
+
+
+# === SISTEMA DE PATRONES DE VICTORIA ===
+
+class WinningPattern(models.Model):
+    """Patrones de victoria configurables para el bingo"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    operator = models.ForeignKey(Operator, on_delete=models.CASCADE, related_name='winning_patterns', null=True, blank=True)
+    
+    # Información básica
+    name = models.CharField(max_length=100, help_text="Nombre del patrón (ej: Línea Horizontal)")
+    code = models.CharField(max_length=50, unique=True, help_text="Código único del patrón")
+    description = models.TextField(blank=True, help_text="Descripción del patrón")
+    
+    # Categoría
+    CATEGORY_CHOICES = [
+        ('classic', 'Clásico'),
+        ('special', 'Especial'),
+        ('custom', 'Personalizado'),
+    ]
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='classic')
+    
+    # Tipo de bingo compatible
+    COMPATIBLE_TYPES = [
+        ('all', 'Todos'),
+        ('75', 'Solo 75 bolas'),
+        ('85', 'Solo 85 bolas'),
+        ('90', 'Solo 90 bolas'),
+    ]
+    compatible_with = models.CharField(max_length=10, choices=COMPATIBLE_TYPES, default='all')
+    
+    # Configuración del patrón
+    pattern_type = models.CharField(max_length=50, help_text="Tipo: horizontal_line, vertical_line, diagonal, full_card, etc.")
+    pattern_data = models.JSONField(default=dict, blank=True, help_text="Datos adicionales del patrón (posiciones, etc.)")
+    
+    # Premio
+    prize_multiplier = models.DecimalField(max_digits=5, decimal_places=2, default=1.0, help_text="Multiplicador del premio")
+    
+    # Jackpot progresivo
+    has_jackpot = models.BooleanField(default=False, help_text="¿Tiene jackpot progresivo?")
+    jackpot_max_balls = models.IntegerField(null=True, blank=True, help_text="Máximo de bolas para ganar jackpot")
+    
+    # Estado
+    is_active = models.BooleanField(default=True)
+    is_system = models.BooleanField(default=False, help_text="Patrón del sistema (no se puede eliminar)")
+    
+    # Metadatos
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['category', 'name']
+        verbose_name = 'Patrón de Victoria'
+        verbose_name_plural = 'Patrones de Victoria'
+    
+    def __str__(self):
+        return f"{self.name} ({self.get_category_display()})"
+    
+    @classmethod
+    def create_system_patterns(cls):
+        """Crea los patrones del sistema si no existen"""
+        patterns = [
+            # Patrones Clásicos
+            {
+                'code': 'horizontal_line',
+                'name': 'Línea Horizontal',
+                'description': 'Completa una fila horizontal de números',
+                'category': 'classic',
+                'pattern_type': 'horizontal_line',
+                'compatible_with': 'all',
+                'is_system': True,
+            },
+            {
+                'code': 'vertical_line',
+                'name': 'Línea Vertical',
+                'description': 'Completa una columna vertical',
+                'category': 'classic',
+                'pattern_type': 'vertical_line',
+                'compatible_with': 'all',
+                'is_system': True,
+            },
+            {
+                'code': 'diagonal_line',
+                'name': 'Línea Diagonal',
+                'description': 'Completa una diagonal desde esquina a esquina',
+                'category': 'classic',
+                'pattern_type': 'diagonal_line',
+                'compatible_with': '75',  # Solo para 75 bolas (5x5)
+                'is_system': True,
+            },
+            {
+                'code': 'full_card',
+                'name': 'Cartón Lleno (Bingo)',
+                'description': 'Marca todos los números del cartón',
+                'category': 'classic',
+                'pattern_type': 'full_card',
+                'compatible_with': 'all',
+                'prize_multiplier': 2.0,
+                'is_system': True,
+            },
+            # Patrones Especiales
+            {
+                'code': 'four_corners',
+                'name': 'Cuatro Esquinas',
+                'description': 'Marca las cuatro esquinas del cartón',
+                'category': 'special',
+                'pattern_type': 'four_corners',
+                'compatible_with': '75',
+                'is_system': True,
+            },
+            {
+                'code': 'x_pattern',
+                'name': 'X o Cruz',
+                'description': 'Forma una X con las dos diagonales',
+                'category': 'special',
+                'pattern_type': 'x_pattern',
+                'compatible_with': '75',
+                'prize_multiplier': 1.5,
+                'is_system': True,
+            },
+            {
+                'code': 'letter_l',
+                'name': 'Letra L',
+                'description': 'Forma una L en el cartón',
+                'category': 'special',
+                'pattern_type': 'letter_l',
+                'compatible_with': '75',
+                'is_system': True,
+            },
+            {
+                'code': 'letter_t',
+                'name': 'Letra T',
+                'description': 'Forma una T en el cartón',
+                'category': 'special',
+                'pattern_type': 'letter_t',
+                'compatible_with': '75',
+                'is_system': True,
+            },
+            {
+                'code': 'blackout_jackpot',
+                'name': 'Jackpot Rápido',
+                'description': 'Bingo completo en menos de 50 bolas',
+                'category': 'special',
+                'pattern_type': 'full_card',
+                'compatible_with': '75',
+                'has_jackpot': True,
+                'jackpot_max_balls': 50,
+                'prize_multiplier': 5.0,
+                'is_system': True,
+            },
+        ]
+        
+        created_count = 0
+        for pattern_data in patterns:
+            pattern, created = cls.objects.get_or_create(
+                code=pattern_data['code'],
+                defaults=pattern_data
+            )
+            if created:
+                created_count += 1
+        
+        return created_count
+    
+    def check_pattern(self, marked_numbers: List[int], card_numbers: List[List[int]], bingo_type: str, balls_drawn: int = 0) -> dict:
+        """
+        Verifica si el patrón se cumple con los números marcados
+        
+        Args:
+            marked_numbers: Lista de números marcados
+            card_numbers: Matriz del cartón
+            bingo_type: Tipo de bingo (75, 85, 90)
+            balls_drawn: Cantidad de bolas extraídas
+        
+        Returns:
+            dict con 'is_winner', 'pattern_name', 'prize_multiplier', 'is_jackpot'
+        """
+        # Verificar compatibilidad
+        if self.compatible_with not in ['all', bingo_type]:
+            return {'is_winner': False, 'reason': 'Patrón no compatible con este tipo de bingo'}
+        
+        # Verificar jackpot
+        is_jackpot = False
+        if self.has_jackpot and self.jackpot_max_balls and balls_drawn > 0:
+            is_jackpot = balls_drawn <= self.jackpot_max_balls
+        
+        # Delegar según el tipo de patrón
+        if self.pattern_type == 'horizontal_line':
+            is_winner = self._check_horizontal_line(marked_numbers, card_numbers)
+        elif self.pattern_type == 'vertical_line':
+            is_winner = self._check_vertical_line(marked_numbers, card_numbers)
+        elif self.pattern_type == 'diagonal_line':
+            is_winner = self._check_diagonal_line(marked_numbers, card_numbers)
+        elif self.pattern_type == 'full_card':
+            is_winner = self._check_full_card(marked_numbers, card_numbers)
+        elif self.pattern_type == 'four_corners':
+            is_winner = self._check_four_corners(marked_numbers, card_numbers)
+        elif self.pattern_type == 'x_pattern':
+            is_winner = self._check_x_pattern(marked_numbers, card_numbers)
+        elif self.pattern_type == 'letter_l':
+            is_winner = self._check_letter_l(marked_numbers, card_numbers)
+        elif self.pattern_type == 'letter_t':
+            is_winner = self._check_letter_t(marked_numbers, card_numbers)
+        else:
+            is_winner = False
+        
+        return {
+            'is_winner': is_winner,
+            'pattern_name': self.name,
+            'pattern_code': self.code,
+            'prize_multiplier': float(self.prize_multiplier) * (2.0 if is_jackpot else 1.0),
+            'is_jackpot': is_jackpot,
+            'balls_drawn': balls_drawn
+        }
+    
+    def _check_horizontal_line(self, marked: List[int], card: List[List[int]]) -> bool:
+        """Verifica línea horizontal"""
+        for row in card:
+            non_zero = [num for num in row if num != 0]
+            if all(num in marked for num in non_zero):
+                return True
+        return False
+    
+    def _check_vertical_line(self, marked: List[int], card: List[List[int]]) -> bool:
+        """Verifica línea vertical"""
+        cols = len(card[0])
+        for col in range(cols):
+            column_numbers = [card[row][col] for row in range(len(card)) if card[row][col] != 0]
+            if column_numbers and all(num in marked for num in column_numbers):
+                return True
+        return False
+    
+    def _check_diagonal_line(self, marked: List[int], card: List[List[int]]) -> bool:
+        """Verifica línea diagonal (solo para 5x5)"""
+        if len(card) != 5 or len(card[0]) != 5:
+            return False
+        
+        # Diagonal principal (top-left a bottom-right)
+        diagonal1 = [card[i][i] for i in range(5) if card[i][i] != 0]
+        if diagonal1 and all(num in marked for num in diagonal1):
+            return True
+        
+        # Diagonal inversa (top-right a bottom-left)
+        diagonal2 = [card[i][4-i] for i in range(5) if card[i][4-i] != 0]
+        if diagonal2 and all(num in marked for num in diagonal2):
+            return True
+        
+        return False
+    
+    def _check_full_card(self, marked: List[int], card: List[List[int]]) -> bool:
+        """Verifica cartón lleno"""
+        all_numbers = []
+        for row in card:
+            all_numbers.extend([num for num in row if num != 0])
+        return all(num in marked for num in all_numbers)
+    
+    def _check_four_corners(self, marked: List[int], card: List[List[int]]) -> bool:
+        """Verifica cuatro esquinas (solo para 5x5)"""
+        if len(card) != 5 or len(card[0]) != 5:
+            return False
+        
+        corners = [
+            card[0][0],   # Top-left
+            card[0][4],   # Top-right
+            card[4][0],   # Bottom-left
+            card[4][4]    # Bottom-right
+        ]
+        corners = [c for c in corners if c != 0]
+        return all(num in marked for num in corners)
+    
+    def _check_x_pattern(self, marked: List[int], card: List[List[int]]) -> bool:
+        """Verifica patrón X (ambas diagonales)"""
+        if len(card) != 5 or len(card[0]) != 5:
+            return False
+        
+        # Diagonal principal
+        diagonal1 = [card[i][i] for i in range(5) if card[i][i] != 0]
+        # Diagonal inversa
+        diagonal2 = [card[i][4-i] for i in range(5) if card[i][4-i] != 0]
+        
+        all_diagonal = diagonal1 + diagonal2
+        return all(num in marked for num in all_diagonal)
+    
+    def _check_letter_l(self, marked: List[int], card: List[List[int]]) -> bool:
+        """Verifica patrón L (primera columna + última fila)"""
+        if len(card) != 5 or len(card[0]) != 5:
+            return False
+        
+        # Primera columna
+        first_col = [card[row][0] for row in range(5) if card[row][0] != 0]
+        # Última fila
+        last_row = [card[4][col] for col in range(5) if card[4][col] != 0]
+        
+        l_pattern = first_col + last_row
+        return all(num in marked for num in l_pattern)
+    
+    def _check_letter_t(self, marked: List[int], card: List[List[int]]) -> bool:
+        """Verifica patrón T (primera fila + columna central)"""
+        if len(card) != 5 or len(card[0]) != 5:
+            return False
+        
+        # Primera fila
+        first_row = [card[0][col] for col in range(5) if card[0][col] != 0]
+        # Columna central
+        middle_col = [card[row][2] for row in range(5) if card[row][2] != 0]
+        
+        t_pattern = first_row + middle_col
+        return all(num in marked for num in t_pattern)
