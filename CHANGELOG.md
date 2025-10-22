@@ -1,5 +1,29 @@
 # 📝 Registro de Cambios (Changelog)
 
+## Versión 2.4.1 - Mejora en Creación de Sesiones (2024-10-22)
+
+### 🔧 Mejoras en API
+
+#### Endpoint de Creación de Sesiones
+- ✅ **`session_id` en respuesta**: Ahora retorna el ID directamente en el root de la respuesta
+- ✅ **Respuesta mejorada**: Incluye `message`, `session_id` y `session` completo
+- ✅ **Facilita integración**: No es necesario extraer el ID del objeto `session`
+
+#### Ejemplo de Respuesta
+```json
+{
+  "message": "Sesión creada exitosamente",
+  "session_id": "uuid-de-la-sesion",
+  "session": { ... }
+}
+```
+
+#### Documentación
+- ✅ `EJEMPLO_CREAR_SESION.md` - Guía completa con ejemplos
+- ✅ Ejemplos de integración para Laravel, Vue.js, Python, Node.js
+
+---
+
 ## Versión 2.4 - Sistema de Patrones de Victoria (2024-10-22)
 
 ### 🎯 Sistema de Patrones Configurables

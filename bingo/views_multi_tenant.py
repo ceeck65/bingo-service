@@ -100,11 +100,19 @@ class BingoSessionListView(generics.ListCreateAPIView):
         
         return queryset
     
-    def get_serializer_class(self):
-        """Usar serializer de creación para POST"""
-        if self.request.method == 'POST':
-            return CreateBingoSessionSerializer
-        return BingoSessionSerializer
+    def create(self, request, *args, **kwargs):
+        """Crea una sesión y retorna el ID en la respuesta"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        
+        # Retornar respuesta con el ID de la sesión creada
+        headers = self.get_success_headers(serializer.data)
+        return Response({
+            'message': 'Sesión creada exitosamente',
+            'session_id': serializer.data['id'],
+            'session': serializer.data
+        }, status=status.HTTP_201_CREATED, headers=headers)
 
 
 class BingoSessionDetailView(generics.RetrieveUpdateDestroyAPIView):
