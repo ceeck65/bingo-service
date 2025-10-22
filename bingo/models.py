@@ -813,9 +813,33 @@ class BingoSession(models.Model):
     entry_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Costo de entrada")
     
     # *** NUEVO: Configuración de cartones ***
-    total_cards = models.IntegerField(default=100, help_text="Cantidad total de cartones generados para esta sesión")
-    cards_generated = models.BooleanField(default=False, help_text="Si los cartones ya fueron generados")
-    allow_card_reuse = models.BooleanField(default=False, help_text="Permitir reutilizar cartones de otras sesiones")
+    # DEPRECATED: Estos campos se mantienen por compatibilidad pero ya no se usan
+    total_cards = models.IntegerField(default=100, help_text="[DEPRECATED] Cantidad total de cartones generados")
+    cards_generated = models.BooleanField(default=False, help_text="[DEPRECATED] Si los cartones ya fueron generados")
+    allow_card_reuse = models.BooleanField(default=False, help_text="[DEPRECATED] Permitir reutilizar cartones")
+    
+    # *** NUEVO: Sistema de cartas reutilizables ***
+    CARD_SOURCE_CHOICES = [
+        ('generate', 'Generar nuevas cartas'),
+        ('pack', 'Usar cartas de un pack'),
+        ('player_cards', 'Jugadores usan sus propias cartas'),
+    ]
+    card_source = models.CharField(
+        max_length=20,
+        choices=CARD_SOURCE_CHOICES,
+        default='player_cards',
+        help_text="Origen de las cartas para esta sesión"
+    )
+    
+    # Si card_source='pack', especificar el pack a usar
+    card_pack = models.ForeignKey(
+        'CardPack',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='sessions',
+        help_text="Pack de cartas a usar (solo si card_source='pack')"
+    )
     
     # Horarios
     scheduled_start = models.DateTimeField(help_text="Fecha y hora programada de inicio")
@@ -928,10 +952,24 @@ class PlayerSession(models.Model):
 
 class BingoCardExtended(BingoCard):
     """Extensión del modelo BingoCard para el sistema multi-tenant"""
+    # DEPRECATED: session (ahora se usa SessionCard para relacionar cartas con sesiones)
+    # Mantener por compatibilidad con sesiones antiguas
     session = models.ForeignKey(BingoSession, on_delete=models.CASCADE, related_name='cards', null=True, blank=True)
     player = models.ForeignKey(Player, on_delete=models.SET_NULL, related_name='cards', null=True, blank=True)
     
-    # *** NUEVO: Estado y número de cartón ***
+    # *** NUEVO: Pack al que pertenece esta carta ***
+    pack = models.ForeignKey('CardPack', on_delete=models.SET_NULL, null=True, blank=True, related_name='cards')
+    
+    # *** NUEVO: Serial number único para identificación ***
+    serial_number = models.CharField(
+        max_length=50, 
+        unique=True, 
+        null=True, 
+        blank=True,
+        help_text="Número de serie único (ej: OPERA-75-ABC12345-0042)"
+    )
+    
+    # *** Estado y número de cartón ***
     STATUS_CHOICES = [
         ('available', 'Disponible'),
         ('reserved', 'Reservado'),
@@ -939,21 +977,30 @@ class BingoCardExtended(BingoCard):
         ('cancelled', 'Cancelado'),
     ]
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='available', help_text="Estado del cartón")
-    card_number = models.IntegerField(default=0, help_text="Número del cartón en la sesión")
+    card_number = models.IntegerField(default=0, help_text="Número del cartón")
     
-    # Información adicional
+    # *** NUEVO: Reutilización ***
+    is_reusable = models.BooleanField(
+        default=True, 
+        help_text="Si la carta puede ser reutilizada en múltiples sesiones"
+    )
+    
+    # *** NUEVO: Estadísticas globales ***
+    total_sessions = models.IntegerField(default=0, help_text="Total de sesiones en las que se ha usado")
+    total_wins = models.IntegerField(default=0, help_text="Total de veces que ha ganado")
+    
+    # Información adicional (DEPRECATED - ahora en SessionCard)
     purchase_price = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Precio de compra")
     is_winner = models.BooleanField(default=False, help_text="Es cartón ganador")
     winning_patterns = models.JSONField(default=list, help_text="Patrones ganadores")
     prize_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Monto del premio")
     
-    # *** NUEVO: Timestamps de selección ***
+    # *** Timestamps de selección ***
     reserved_at = models.DateTimeField(null=True, blank=True, help_text="Fecha de reserva")
     purchased_at = models.DateTimeField(null=True, blank=True, help_text="Fecha de compra")
     
     class Meta:
-        ordering = ['session', 'card_number']
-        unique_together = ['session', 'card_number']
+        ordering = ['pack', 'card_number']
     
     def __str__(self):
         return f"Cartón #{self.card_number} - {self.bingo_type} ({self.get_status_display()})"
@@ -1437,3 +1484,305 @@ class WinningPattern(models.Model):
         
         t_pattern = first_row + middle_col
         return all(num in marked for num in t_pattern)
+
+
+# ============================================================================
+# SISTEMA DE REUTILIZACIÓN DE CARTAS
+# ============================================================================
+
+class CardPack(models.Model):
+    """
+    Paquetes de cartas reutilizables
+    Los operadores crean packs de cartas que pueden ser usados en múltiples sesiones
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    operator = models.ForeignKey(Operator, on_delete=models.CASCADE, related_name='card_packs')
+    
+    # Información básica
+    name = models.CharField(max_length=100, help_text="Nombre del pack (ej: Pack Clásico 75)")
+    description = models.TextField(blank=True, help_text="Descripción del pack")
+    bingo_type = models.CharField(max_length=10, choices=BingoCard.BINGO_TYPES, help_text="Tipo de bingo")
+    
+    # Configuración
+    total_cards = models.IntegerField(default=100, help_text="Cantidad total de cartas en el pack")
+    cards_generated = models.BooleanField(default=False, help_text="Si las cartas ya fueron generadas")
+    
+    # Precio y disponibilidad
+    price_per_card = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0,
+        help_text="Precio por carta (0 = gratuito)"
+    )
+    is_active = models.BooleanField(default=True, help_text="Pack activo")
+    is_public = models.BooleanField(default=True, help_text="Visible para todos los jugadores")
+    
+    # Categoría
+    CATEGORY_CHOICES = [
+        ('free', 'Gratuito'),
+        ('basic', 'Básico'),
+        ('premium', 'Premium'),
+        ('vip', 'VIP'),
+        ('legacy', 'Legacy'),  # Para migración de sesiones antiguas
+    ]
+    category = models.CharField(
+        max_length=20, 
+        choices=CATEGORY_CHOICES, 
+        default='basic',
+        help_text="Categoría del pack"
+    )
+    
+    # Metadatos
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Card Pack'
+        verbose_name_plural = 'Card Packs'
+    
+    def __str__(self):
+        return f"{self.name} - {self.operator.name} ({self.bingo_type})"
+    
+    def generate_cards(self) -> tuple[bool, str]:
+        """Genera todas las cartas para este pack"""
+        if self.cards_generated:
+            return False, "Las cartas ya fueron generadas para este pack"
+        
+        cards_created = []
+        for i in range(self.total_cards):
+            # Generar números del cartón
+            if self.bingo_type == '75':
+                numbers = BingoCard.generate_75_ball_card()
+            elif self.bingo_type == '85':
+                numbers = BingoCard.generate_85_ball_card()
+            elif self.bingo_type == '90':
+                numbers = BingoCard.generate_90_ball_card()
+            else:
+                return False, f"Tipo de bingo no válido: {self.bingo_type}"
+            
+            # Crear carta con serial number único
+            serial_number = f"{self.operator.code.upper()}-{self.bingo_type}-{self.id.hex[:8].upper()}-{i+1:04d}"
+            
+            card = BingoCardExtended.objects.create(
+                user_id=f"pack_{self.id}",
+                bingo_type=self.bingo_type,
+                numbers=numbers,
+                pack=self,
+                card_number=i + 1,
+                serial_number=serial_number,
+                is_reusable=True
+            )
+            cards_created.append(card)
+        
+        self.cards_generated = True
+        self.save()
+        
+        return True, f"{len(cards_created)} cartas generadas exitosamente"
+    
+    def get_available_cards(self):
+        """Retorna cartas disponibles (no asignadas a ningún jugador)"""
+        return self.cards.filter(owners__isnull=True)
+    
+    def get_cards_count(self):
+        """Retorna el conteo de cartas generadas"""
+        return self.cards.count()
+
+
+class PlayerCard(models.Model):
+    """
+    Cartas que pertenecen a los jugadores
+    Tabla intermedia entre Player y BingoCardExtended con información de propiedad
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    player = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='owned_cards')
+    card = models.ForeignKey('BingoCardExtended', on_delete=models.CASCADE, related_name='owners')
+    pack = models.ForeignKey(CardPack, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Información de adquisición
+    acquired_at = models.DateTimeField(auto_now_add=True)
+    
+    ACQUISITION_TYPES = [
+        ('purchase', 'Compra'),
+        ('gift', 'Regalo'),
+        ('reward', 'Recompensa'),
+        ('promotion', 'Promoción'),
+        ('initial', 'Pack Inicial'),
+    ]
+    acquisition_type = models.CharField(
+        max_length=20, 
+        choices=ACQUISITION_TYPES,
+        default='purchase',
+        help_text="Tipo de adquisición"
+    )
+    purchase_price = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0,
+        help_text="Precio de compra"
+    )
+    
+    # Estadísticas
+    times_used = models.IntegerField(default=0, help_text="Veces que se ha usado")
+    times_won = models.IntegerField(default=0, help_text="Veces que ha ganado")
+    total_prizes = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0,
+        help_text="Total de premios ganados con esta carta"
+    )
+    
+    # Favoritos y personalización
+    is_favorite = models.BooleanField(default=False, help_text="Carta marcada como favorita")
+    nickname = models.CharField(
+        max_length=50, 
+        blank=True,
+        help_text="Apodo personalizado (ej: 'Mi carta de la suerte')"
+    )
+    
+    # Metadatos
+    last_used_at = models.DateTimeField(null=True, blank=True, help_text="Última vez que se usó")
+    
+    class Meta:
+        unique_together = ['player', 'card']
+        ordering = ['-is_favorite', '-times_won', '-acquired_at']
+        verbose_name = 'Player Card'
+        verbose_name_plural = 'Player Cards'
+    
+    def __str__(self):
+        return f"{self.player.username} - Carta #{self.card.card_number}"
+    
+    def update_stats(self, won: bool = False, prize_amount: float = 0):
+        """Actualiza las estadísticas después de usar la carta"""
+        from django.utils import timezone
+        
+        self.times_used += 1
+        self.last_used_at = timezone.now()
+        
+        if won:
+            self.times_won += 1
+            self.total_prizes += prize_amount
+        
+        self.save()
+        
+        # Actualizar también las estadísticas globales de la carta
+        self.card.total_sessions += 1
+        if won:
+            self.card.total_wins += 1
+        self.card.save()
+
+
+class SessionCard(models.Model):
+    """
+    Cartas activas en una sesión específica
+    Relaciona una sesión con las cartas que están siendo jugadas
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    session = models.ForeignKey(BingoSession, on_delete=models.CASCADE, related_name='session_cards')
+    card = models.ForeignKey('BingoCardExtended', on_delete=models.CASCADE, related_name='session_instances')
+    player = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='session_cards')
+    
+    # Estado en la sesión
+    STATUS_CHOICES = [
+        ('active', 'Activa'),
+        ('playing', 'Jugando'),
+        ('won', 'Ganadora'),
+        ('finished', 'Finalizada'),
+        ('cancelled', 'Cancelada'),
+    ]
+    status = models.CharField(
+        max_length=20, 
+        choices=STATUS_CHOICES, 
+        default='active',
+        help_text="Estado de la carta en esta sesión"
+    )
+    
+    # Números marcados en esta sesión específica
+    marked_numbers = models.JSONField(
+        default=list,
+        help_text="Números que han sido marcados en esta sesión"
+    )
+    
+    # Resultado
+    is_winner = models.BooleanField(default=False, help_text="Es carta ganadora en esta sesión")
+    winning_patterns = models.JSONField(
+        default=list,
+        help_text="Patrones ganadores completados"
+    )
+    prize_amount = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0,
+        help_text="Monto del premio ganado"
+    )
+    
+    # Timestamps
+    joined_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        unique_together = ['session', 'card', 'player']
+        ordering = ['-joined_at']
+        verbose_name = 'Session Card'
+        verbose_name_plural = 'Session Cards'
+    
+    def __str__(self):
+        return f"Sesión {self.session.name} - {self.player.username} - Carta #{self.card.card_number}"
+    
+    def mark_number(self, number: int) -> bool:
+        """Marca un número en esta carta para esta sesión"""
+        if number not in self.marked_numbers:
+            self.marked_numbers.append(number)
+            self.save()
+            return True
+        return False
+    
+    def check_winner(self) -> dict:
+        """Verifica si esta carta es ganadora según los patrones de la sesión"""
+        patterns = self.session.get_winning_patterns()
+        
+        for pattern in patterns:
+            result = pattern.check_pattern(
+                marked_numbers=self.marked_numbers,
+                card_numbers=self.card.numbers,
+                bingo_type=self.session.bingo_type,
+                balls_drawn=len(self.marked_numbers)
+            )
+            
+            if result['is_winner']:
+                self.is_winner = True
+                self.winning_patterns.append({
+                    'code': pattern.code,
+                    'name': pattern.name,
+                    'balls_drawn': len(self.marked_numbers)
+                })
+                self.save()
+                
+                return {
+                    'is_winner': True,
+                    'pattern': pattern.name,
+                    'pattern_code': pattern.code,
+                    'balls_drawn': len(self.marked_numbers)
+                }
+        
+        return {'is_winner': False}
+    
+    def finish(self):
+        """Finaliza esta carta en la sesión"""
+        from django.utils import timezone
+        
+        self.status = 'won' if self.is_winner else 'finished'
+        self.finished_at = timezone.now()
+        self.save()
+        
+        # Actualizar estadísticas del jugador si tiene esta carta
+        player_card = PlayerCard.objects.filter(
+            player=self.player,
+            card=self.card
+        ).first()
+        
+        if player_card:
+            player_card.update_stats(
+                won=self.is_winner,
+                prize_amount=float(self.prize_amount)
+            )

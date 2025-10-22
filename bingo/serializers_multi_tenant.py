@@ -71,6 +71,8 @@ class BingoSessionSerializer(serializers.ModelSerializer):
     operator_name = serializers.CharField(source='operator.name', read_only=True)
     bingo_type_display = serializers.CharField(source='get_bingo_type_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    card_source_display = serializers.CharField(source='get_card_source_display', read_only=True)
+    card_pack_name = serializers.CharField(source='card_pack.name', read_only=True, allow_null=True)
     players_count = serializers.SerializerMethodField()
     cards_count = serializers.SerializerMethodField()
     available_cards_count = serializers.SerializerMethodField()
@@ -82,6 +84,7 @@ class BingoSessionSerializer(serializers.ModelSerializer):
             'id', 'operator', 'operator_name', 'name', 'description',
             'bingo_type', 'bingo_type_display', 'max_players', 'entry_fee',
             'total_cards', 'cards_generated', 'allow_card_reuse',
+            'card_source', 'card_source_display', 'card_pack', 'card_pack_name',
             'scheduled_start', 'actual_start', 'actual_end', 'status', 'status_display',
             'auto_start', 'auto_draw_interval', 'winning_patterns',
             'players_count', 'cards_count', 'available_cards_count', 'sold_cards_count',

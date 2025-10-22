@@ -2,7 +2,8 @@ from django.contrib import admin
 from .models import (
     BingoCard, BingoGame, DrawnBall,
     Operator, Player, BingoSession, PlayerSession,
-    BingoCardExtended, BingoGameExtended, APIKey, WinningPattern
+    BingoCardExtended, BingoGameExtended, APIKey, WinningPattern,
+    CardPack, PlayerCard, SessionCard
 )
 
 
@@ -251,3 +252,112 @@ class WinningPatternAdmin(admin.ModelAdmin):
         if obj and obj.is_system:
             readonly.extend(['code', 'pattern_type', 'is_system'])
         return readonly
+
+
+# === ADMIN PARA SISTEMA DE REUTILIZACIÓN DE CARTAS ===
+
+@admin.register(CardPack)
+class CardPackAdmin(admin.ModelAdmin):
+    list_display = ['name', 'operator', 'bingo_type', 'category', 'total_cards', 'cards_generated', 'is_active', 'created_at']
+    list_filter = ['operator', 'bingo_type', 'category', 'is_active', 'cards_generated', 'is_public', 'created_at']
+    search_fields = ['name', 'description']
+    readonly_fields = ['id', 'cards_generated', 'created_at', 'updated_at', 'cards_count_display']
+    fieldsets = (
+        ('Información Básica', {
+            'fields': ('operator', 'name', 'description', 'bingo_type')
+        }),
+        ('Configuración', {
+            'fields': ('total_cards', 'cards_generated', 'cards_count_display', 'category')
+        }),
+        ('Precio y Disponibilidad', {
+            'fields': ('price_per_card', 'is_active', 'is_public')
+        }),
+        ('Metadatos', {
+            'fields': ('id', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )
+    
+    def cards_count_display(self, obj):
+        """Muestra el conteo actual de cartas"""
+        return f"{obj.get_cards_count()} / {obj.total_cards}"
+    cards_count_display.short_description = 'Cartas Generadas'
+    
+    actions = ['generate_cards_action']
+    
+    def generate_cards_action(self, request, queryset):
+        """Acción para generar cartas para packs seleccionados"""
+        success_count = 0
+        for pack in queryset:
+            if not pack.cards_generated:
+                success, message = pack.generate_cards()
+                if success:
+                    success_count += 1
+        
+        self.message_user(request, f"{success_count} packs procesados exitosamente")
+    generate_cards_action.short_description = "Generar cartas para los packs seleccionados"
+
+
+@admin.register(PlayerCard)
+class PlayerCardAdmin(admin.ModelAdmin):
+    list_display = ['player', 'card_serial', 'pack', 'acquisition_type', 'times_used', 'times_won', 'is_favorite', 'acquired_at']
+    list_filter = ['player__operator', 'pack', 'acquisition_type', 'is_favorite', 'acquired_at']
+    search_fields = ['player__username', 'card__serial_number', 'nickname']
+    readonly_fields = ['id', 'acquired_at', 'last_used_at', 'times_used', 'times_won', 'total_prizes']
+    fieldsets = (
+        ('Relaciones', {
+            'fields': ('player', 'card', 'pack')
+        }),
+        ('Adquisición', {
+            'fields': ('acquisition_type', 'purchase_price', 'acquired_at')
+        }),
+        ('Personalización', {
+            'fields': ('is_favorite', 'nickname')
+        }),
+        ('Estadísticas', {
+            'fields': ('times_used', 'times_won', 'total_prizes', 'last_used_at')
+        }),
+        ('Metadatos', {
+            'fields': ('id',),
+            'classes': ('collapse',)
+        })
+    )
+    
+    def card_serial(self, obj):
+        """Muestra el serial number de la carta"""
+        return obj.card.serial_number or f"#{obj.card.card_number}"
+    card_serial.short_description = 'Carta'
+
+
+@admin.register(SessionCard)
+class SessionCardAdmin(admin.ModelAdmin):
+    list_display = ['session', 'player', 'card_serial', 'status', 'is_winner', 'prize_amount', 'joined_at']
+    list_filter = ['session__operator', 'status', 'is_winner', 'joined_at']
+    search_fields = ['session__name', 'player__username', 'card__serial_number']
+    readonly_fields = ['id', 'joined_at', 'finished_at', 'marked_numbers', 'is_winner', 'winning_patterns', 'prize_amount']
+    fieldsets = (
+        ('Relaciones', {
+            'fields': ('session', 'player', 'card')
+        }),
+        ('Estado', {
+            'fields': ('status', 'joined_at', 'finished_at')
+        }),
+        ('Juego', {
+            'fields': ('marked_numbers',)
+        }),
+        ('Resultados', {
+            'fields': ('is_winner', 'winning_patterns', 'prize_amount')
+        }),
+        ('Metadatos', {
+            'fields': ('id',),
+            'classes': ('collapse',)
+        })
+    )
+    
+    def card_serial(self, obj):
+        """Muestra el serial number de la carta"""
+        return obj.card.serial_number or f"#{obj.card.card_number}"
+    card_serial.short_description = 'Carta'
+    
+    def has_add_permission(self, request):
+        return False  # Las SessionCard se crean via API

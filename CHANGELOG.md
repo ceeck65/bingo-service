@@ -1,5 +1,125 @@
 # 📝 Registro de Cambios (Changelog)
 
+## Versión 2.5 - Sistema de Reutilización de Cartas (2024-10-22)
+
+### 🎴 Nueva Arquitectura de Cartas
+
+#### Modelos Implementados
+- ✅ **`CardPack`**: Paquetes reutilizables de cartas
+  - Operadores crean packs de cartas (50, 100, 500, etc.)
+  - Categorías: free, basic, premium, vip, legacy
+  - Generación única, uso infinito
+  
+- ✅ **`PlayerCard`**: Cartas propiedad de jugadores
+  - Jugadores adquieren cartas de packs
+  - Estadísticas por carta (veces usada, veces ganada, premios)
+  - Personalización (favoritos, apodos)
+  - Win rate tracking
+  
+- ✅ **`SessionCard`**: Cartas activas en sesiones
+  - Relaciona sesión + jugador + carta
+  - Números marcados por sesión
+  - Resultados independientes por sesión
+  - Permite reutilizar la misma carta en múltiples sesiones
+
+#### Modificaciones a Modelos Existentes
+- ✅ **`BingoCardExtended`**: Nuevos campos
+  - `pack`: Relación con CardPack
+  - `serial_number`: Identificador único (ej: OPERA-75-ABC12345-0042)
+  - `is_reusable`: Indica si la carta puede reutilizarse
+  - `total_sessions`: Contador de sesiones donde se usó
+  - `total_wins`: Contador de victorias globales
+  
+- ✅ **`BingoSession`**: Sistema de fuentes de cartas
+  - `card_source`: 'player_cards', 'pack', 'generate'
+  - `card_pack`: Pack a usar (si card_source='pack')
+  - Campos antiguos marcados como DEPRECATED
+
+### 🔌 Nuevos Endpoints
+
+#### Card Packs
+- `POST /api/card-packs/packs/` - Crear pack
+- `GET /api/card-packs/packs/` - Listar packs
+- `GET /api/card-packs/packs/{id}/` - Detalle de pack
+- `POST /api/card-packs/packs/{id}/generate-cards/` - Generar cartas
+- `GET /api/card-packs/packs/{id}/cards/` - Ver cartas del pack
+
+#### Player Cards
+- `POST /api/card-packs/players/{id}/acquire-cards/` - Adquirir cartas
+- `GET /api/card-packs/players/{id}/cards/` - Ver colección
+- `PATCH /api/card-packs/players/{id}/cards/{card_id}/favorite/` - Marcar favorita
+- `PATCH /api/card-packs/players/{id}/cards/{card_id}/nickname/` - Poner apodo
+
+#### Session Cards
+- `POST /api/card-packs/sessions/{id}/join-with-cards/` - Unirse con cartas
+- `GET /api/card-packs/sessions/{id}/cards/` - Ver cartas en sesión
+- `GET /api/card-packs/sessions/{id}/players/{player_id}/cards/` - Cartas de jugador
+- `POST /api/card-packs/mark-number/` - Marcar número en carta
+
+### 🎯 Modos de Operación
+
+#### Modo 1: Jugadores con Cartas Propias (Recomendado)
+```json
+{
+  "card_source": "player_cards"
+}
+```
+- Jugadores usan sus cartas personales
+- Reutilización completa
+- Estadísticas por carta
+
+#### Modo 2: Pack Compartido
+```json
+{
+  "card_source": "pack",
+  "card_pack": "uuid-pack"
+}
+```
+- Sesión usa cartas de un pack
+- Cartas se asignan temporalmente
+- Vuelven al pool al terminar
+
+#### Modo 3: Generar Nuevas (Legacy)
+```json
+{
+  "card_source": "generate",
+  "total_cards": 100
+}
+```
+- Compatible con sistema anterior
+- Cartas desechables
+
+### 📊 Beneficios
+
+**Para Jugadores:**
+- ✅ Colección personal de cartas
+- ✅ Reutilizan favoritas en múltiples sesiones
+- ✅ Estadísticas detalladas (win rate, veces usada)
+- ✅ Personalización (apodos, favoritos)
+
+**Para Operadores:**
+- ✅ No generan cartas cada vez
+- ✅ Un pack sirve para miles de sesiones
+- ✅ Control de inventario
+- ✅ Pueden vender cartas premium
+
+**Para el Sistema:**
+- ✅ Escalable (menos datos generados)
+- ✅ Flexible (3 modos de operación)
+- ✅ Retrocompatible
+- ✅ Optimizado
+
+### 🗄️ Admin Interface
+- ✅ Gestión de CardPacks con acción de generación masiva
+- ✅ Visualización de PlayerCards con estadísticas
+- ✅ Monitoreo de SessionCards activas
+
+### 📝 Documentación
+- ✅ `PROPUESTA_REUTILIZACION_CARTAS.md` - Diseño completo
+- ✅ `demo_card_reuse.py` - Demo funcional del sistema
+
+---
+
 ## Versión 2.4.1 - Mejora en Creación de Sesiones (2024-10-22)
 
 ### 🔧 Mejoras en API
