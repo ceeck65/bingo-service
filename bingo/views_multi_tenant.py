@@ -244,7 +244,7 @@ class BingoCardExtendedDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 @api_view(['POST'])
 def generate_cards_for_session(request):
-    """Genera cartones cuando se crea una sesión"""
+    """Genera cartones cuando se crea una sesión y devuelve todos los cartones en un array"""
     serializer = GenerateCardsForSessionSerializer(data=request.data)
     
     if serializer.is_valid():
@@ -252,17 +252,23 @@ def generate_cards_for_session(request):
         
         session = BingoSession.objects.get(id=session_id)
         
-        # Generar cartones
-        success, message = session.generate_cards_for_session()
+        # Generar cartones - ahora devuelve 3 valores: success, message, cards
+        success, message, cards_created = session.generate_cards_for_session()
         
         if not success:
             return Response({
                 'error': message
             }, status=status.HTTP_400_BAD_REQUEST)
         
+        # ✅ CORREGIDO: Serializar y devolver todos los cartones en un array 'cards'
+        cards_data = BingoCardExtendedSerializer(cards_created, many=True).data
+        
         return Response({
             'message': message,
-            'session': BingoSessionSerializer(session).data
+            'session': BingoSessionSerializer(session).data,
+            'cards': cards_data,  # ✅ Array con todos los cartones generados
+            'cards_generated': len(cards_created),
+            'cards_returned': len(cards_data),
         }, status=status.HTTP_201_CREATED)
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -536,10 +542,13 @@ def release_card(request):
 
 @api_view(['GET'])
 def get_available_cards(request, session_id):
-    """Obtiene los cartones disponibles de una sesión"""
+    """Obtiene los cartones disponibles de una sesión - siempre devuelve array completo de cards"""
     try:
         session = BingoSession.objects.get(id=session_id)
         available_cards = session.get_available_cards()
+        
+        # ✅ Serializar todos los cartones disponibles
+        cards_data = BingoCardExtendedSerializer(available_cards, many=True).data
         
         return Response({
             'session': {
@@ -548,7 +557,8 @@ def get_available_cards(request, session_id):
                 'total_cards': session.total_cards,
                 'available_count': available_cards.count()
             },
-            'cards': BingoCardExtendedSerializer(available_cards, many=True).data
+            'cards': cards_data,  # ✅ Array con todos los cartones disponibles
+            'cards_returned': len(cards_data),
         }, status=status.HTTP_200_OK)
     
     except BingoSession.DoesNotExist:

@@ -1,5 +1,51 @@
 # 📝 Registro de Cambios (Changelog)
 
+## Versión 2.6 - Corrección Respuesta de Cartones (2025-10-22)
+
+### 🔧 Corrección en API de Generación de Cartones
+
+#### Problema Resuelto
+- ❌ **Antes:** Endpoint `POST /api/multi-tenant/cards/generate-for-session/` NO devolvía los cartones generados
+- ✅ **Ahora:** Siempre devuelve todos los cartones en un array `cards`
+
+#### Archivos Modificados
+1. **`bingo/models.py`**
+   - Método `BingoSession.generate_cards_for_session()`
+   - Cambio: Devuelve `(success, message, cards)` en lugar de `(success, message)`
+
+2. **`bingo/views_multi_tenant.py`**
+   - Vista `generate_cards_for_session()`
+   - Cambio: Serializa y devuelve array completo de cartones
+   - Vista `get_available_cards()`
+   - Mejora: Agrega contador `cards_returned`
+
+#### Estructura de Respuesta Nueva
+```json
+{
+  "message": "100 cartones generados exitosamente",
+  "session": { ... },
+  "cards": [
+    {"id": "...", "card_number": 1, "numbers": [...], ...},
+    // ... resto de cartones
+  ],
+  "cards_generated": 100,
+  "cards_returned": 100
+}
+```
+
+#### Beneficios
+- ✅ Una sola petición HTTP (antes necesitaba dos)
+- ✅ Mejor performance
+- ✅ Estructura de respuesta consistente
+- ✅ Facilita debugging
+- ✅ Compatible con código anterior (solo agrega campos)
+
+#### Documentación
+- Ver: `docs/CORRECCION_RESPUESTA_CARTONES.md`
+- Ver: `CORRECCION_CARTONES_RESUMEN.md`
+
+---
+
 ## Versión 2.5 - Sistema de Reutilización de Cartas (2024-10-22)
 
 ### 🎴 Nueva Arquitectura de Cartas

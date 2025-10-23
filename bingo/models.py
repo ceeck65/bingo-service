@@ -891,9 +891,9 @@ class BingoSession(models.Model):
         )
     
     def generate_cards_for_session(self):
-        """Genera los cartones para esta sesión"""
+        """Genera los cartones para esta sesión y devuelve todos los cartones generados"""
         if self.cards_generated:
-            return False, "Los cartones ya fueron generados para esta sesión"
+            return False, "Los cartones ya fueron generados para esta sesión", []
         
         # Generar cartones
         cards_created = []
@@ -911,7 +911,8 @@ class BingoSession(models.Model):
         self.cards_generated = True
         self.save()
         
-        return True, f"{len(cards_created)} cartones generados exitosamente"
+        # ✅ CORREGIDO: Ahora devuelve los cartones en la respuesta
+        return True, f"{len(cards_created)} cartones generados exitosamente", cards_created
     
     def get_available_cards(self):
         """Retorna los cartones disponibles para esta sesión"""
